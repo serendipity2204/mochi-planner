@@ -2,7 +2,7 @@
 import { store, commit } from '../store.js';
 import { t, fmtDuration, weekdayShort } from '../i18n.js';
 import { esc, pad, addDays, startOfDay, dkey } from '../utils.js';
-import { on, go, rerender, openSheet, closeSheet, sheetHead, toast, field, input, select, toggle, celebrate, ring, formData, currentRoute, $ } from '../ui.js';
+import { on, go, rerender, openSheet, closeSheet, sheetHead, toast, promptDialog, field, input, select, toggle, celebrate, ring, formData, currentRoute, $ } from '../ui.js';
 import { pigSVG, ACCESSORIES, EXPRESSIONS } from '../pig.js';
 import { pigProps, focusOn, sessionsOn, streak, totalFocus, isUnlocked, courseOptions, pendingAssignments, upcomingExams } from '../data.js';
 import * as timer from '../timer.js';
@@ -46,10 +46,11 @@ export function render() {
     <div class="focus-wrap">
       <div class="card">
         <div class="seg" style="margin-bottom:6px">${['focus', 'short', 'long'].map((m) => `<button class="${tm.mode === m ? 'on' : ''}" data-act="timer.mode" data-m="${m}" ${tm.running || !timer.isIdle() ? 'disabled style="opacity:.6"' : ''}>${t('focus.' + m)}</button>`).join('')}</div>
+        ${timer.isIdle() ? durationEditor(tm.mode) : `<div class="center small muted" style="margin-top:6px">${t('focus.lockedWhileRunning')}</div>`}
         <div class="focus-stage">
           <div class="timer-ring">
             <svg class="ring-svg" viewBox="0 0 300 300"><circle cx="150" cy="150" r="${R}" fill="none" stroke="var(--primary-3)" stroke-width="14"/><circle id="tr-arc" cx="150" cy="150" r="${R}" fill="none" stroke="${tm.mode === 'focus' ? 'var(--primary)' : 'var(--green)'}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - rem / tot)}" style="transition:stroke-dashoffset 1s linear" data-c="${C}"/></svg>
-            <div class="inner"><div id="tr-pig" data-act="pig.poke">${pigSVG(pigProps({ mood: timerMood(), size: 130, cls: 'pig-anim' }))}</div><div class="time" id="tr-time">${mmss(rem)}</div><div class="small muted bold">${t('focus.' + tm.mode)}</div></div>
+            <div class="inner"><div id="tr-pig" data-act="pig.poke">${pigSVG(pigProps({ mood: timerMood(), size: 104, cls: 'pig-anim' }))}</div><div class="time" id="tr-time">${mmss(rem)}</div><div class="small muted bold">${t('focus.' + tm.mode)}</div></div>
           </div>
           <button class="chip" data-act="timer.label" ${tm.running ? 'disabled' : ''}>🏷️ ${tm.label ? esc(tm.label) : t('focus.chooseLabel')}</button>
           <div class="cycle-dots">${Array.from({ length: f.longEvery || 4 }, (_, i) => `<i class="${i < (tm.cycle || 0) % (f.longEvery || 4) ? 'on' : ''}"></i>`).join('')}</div>
@@ -74,6 +75,28 @@ export function render() {
     </div></div>`;
 }
 
+// Quick duration editing right on the timer screen
+const PRESETS = { focus: [15, 25, 30, 45, 60, 90], short: [3, 5, 10, 15], long: [15, 20, 30] };
+const LIMITS = { focus: [1, 180], short: [1, 60], long: [1, 90] };
+function durationEditor(mode) {
+  const f = S().settings.focus, v = f[mode];
+  return `<div class="dur-row">
+      <button class="icon-btn" data-act="dur.step" data-d="-1" aria-label="-">−</button>
+      <button class="dur-val" data-act="dur.custom"><b>${v}</b> ${t('unit.minShort')} ✏️</button>
+      <button class="icon-btn" data-act="dur.step" data-d="1" aria-label="+">＋</button></div>
+    <div class="chips" style="justify-content:center;flex-wrap:wrap">${PRESETS[mode].map((m) => `<button class="chip ${m === v ? 'on' : ''}" data-act="dur.set" data-v="${m}">${m} ${t('unit.minShort')}</button>`).join('')}</div>
+    <div class="center tiny muted">${t('focus.durSummary', { f: f.focus, s: f.short, l: f.long, n: f.longEvery })} · <button class="link" style="color:var(--primary);font-weight:800" data-act="timer.settings">${t('focus.moreSettings')}</button></div>`;
+}
+function setDuration(v) {
+  const tm = S().timer, [lo, hi] = LIMITS[tm.mode];
+  v = Math.round(Number(v));
+  if (!Number.isFinite(v)) return;
+  v = Math.max(lo, Math.min(hi, v));
+  S().settings.focus[tm.mode] = v;
+  if (timer.isIdle()) tm.totalMs = v * 60000;
+  commit('settings'); rerender();
+}
+
 let lastMood = '';
 export function tick() {
   const el = $('#tr-time');
@@ -83,7 +106,7 @@ export function tick() {
   const arc = $('#tr-arc');
   if (arc) arc.style.strokeDashoffset = arc.dataset.c * (1 - rem / tot);
   const mood = timerMood();
-  if (mood !== lastMood) { lastMood = mood; $('#tr-pig').innerHTML = pigSVG(pigProps({ mood, size: 130, cls: 'pig-anim' })); }
+  if (mood !== lastMood) { lastMood = mood; $('#tr-pig').innerHTML = pigSVG(pigProps({ mood, size: 104, cls: 'pig-anim' })); }
   if (S().timer.running) document.title = `${mmss(rem)} · ${t('app.name')}`;
 }
 
@@ -151,6 +174,19 @@ export function wardrobeSheet() {
 
 on({
   'timer.mode': (el) => { timer.setMode(el.dataset.m); rerender(); },
+  'dur.set': (el) => setDuration(el.dataset.v),
+  'dur.step': (el) => {
+    const mode = S().timer.mode, cur = S().settings.focus[mode], d = +el.dataset.d;
+    const big = mode === 'focus' && (d > 0 ? cur >= 10 : cur > 10);
+    setDuration(big ? Math.round((cur + d * 5) / 5) * 5 : cur + d);
+  },
+  'dur.custom': async () => {
+    const mode = S().timer.mode, [lo, hi] = LIMITS[mode];
+    const v = await promptDialog(t('focus.customDur', { mode: t('focus.' + mode), lo, hi }), String(S().settings.focus[mode]));
+    if (v === null || v === '') return;
+    if (!/^\d+$/.test(v) || +v < lo || +v > hi) return toast(t('focus.durRange', { lo, hi }), 'err');
+    setDuration(v);
+  },
   'timer.start': () => { timer.start(); toast(S().timer.mode === 'focus' ? t('focus.started') : t('focus.breakStarted')); rerender(); },
   'timer.pause': () => { timer.pause(); rerender(); },
   'timer.resume': () => { timer.resume(); rerender(); },
