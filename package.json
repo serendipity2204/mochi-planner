@@ -1,0 +1,27 @@
+{
+  "name": "mochi-planner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "糯糯学伴 Mochi Planner – cute pink-pig student planner (timetable, assignments, exams, pomodoro)",
+  "scripts": {
+    "serve": "python3 -m http.server 8080 --directory www",
+    "check": "node scripts/check-i18n.mjs",
+    "android:add": "npx cap add android && node scripts/patch-android.js",
+    "android:sync": "cp node_modules/@capacitor/core/dist/capacitor.js www/capacitor.js && npx cap sync android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor-community/speech-recognition": "^6.0.1",
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.1",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/filesystem": "^6.0.1",
+    "@capacitor/haptics": "^6.0.1",
+    "@capacitor/local-notifications": "^6.1.1",
+    "@capacitor/share": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,14 @@
+{
+  "appId": "com.mochiplanner.app",
+  "appName": "糯糯学伴",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#FFE9F1"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_mochi",
+      "iconColor": "#EC6C9C"
+    }
+  }
+}
