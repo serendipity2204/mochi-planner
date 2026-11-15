@@ -195,11 +195,11 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 /* ---------- Pig & bubbles ---------- */
 .pig { overflow: visible; display: block; }
-.pig .pig-head { transform-origin: 100px 120px; }
+.pig .pig-head { transform-origin: 100px 150px; }
 .pig-anim .pig-head { animation: bob 3s ease-in-out infinite; }
-.pig-anim .pig-ear-l { transform-origin: 56px 50px; animation: earL 4s ease-in-out infinite; }
-.pig-anim .pig-ear-r { transform-origin: 144px 50px; animation: earR 4s ease-in-out infinite .3s; }
-.pig-anim .pig-eye { transform-origin: 100px 88px; animation: blink 5s infinite; }
+.pig-anim .pig-ear-l { transform-origin: 70px 64px; animation: earL 4s ease-in-out infinite; }
+.pig-anim .pig-ear-r { transform-origin: 130px 64px; animation: earR 4s ease-in-out infinite .3s; }
+.pig-anim .pig-eye { transform-origin: 100px 112px; animation: blink 5s infinite; }
 .pig-anim.pig-mood-focus .pig-head { animation: read 2.4s ease-in-out infinite; }
 .pig-anim.pig-mood-sleep .pig-head { animation: breathe 3.5s ease-in-out infinite; }
 .pig-anim .pig-zzz { animation: zzz 2.5s ease-in-out infinite; }
