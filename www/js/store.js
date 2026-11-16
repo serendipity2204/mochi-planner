@@ -49,6 +49,7 @@ export function defaultSettings() {
     focus: { focus: 25, short: 5, long: 15, longEvery: 4, dailyGoal: 120, autoNext: false },
     backup: { auto: true, last: null, lastExport: null },
     security: { pin: null, lockOnResume: true },
+    cloud: { autoSync: true, deviceId: '', uid: null, email: null, lastSync: null, lastRemote: 0, localChange: 0 },
   };
 }
 
@@ -190,4 +191,12 @@ export async function wipeAll() {
   await tx('backups', 'readwrite', (s) => s.clear());
   store.state = defaultState();
   listeners.forEach((fn) => fn('wipe'));
+}
+
+// Replace the whole state (used by cloud sync); keeps device-only keys from the current state
+export async function replaceState(next, reason = 'remote', keep = (cur, nxt) => nxt) {
+  const merged = keep(store.state, merge(defaultState(), next));
+  store.state = merged;
+  await flush();
+  listeners.forEach((fn) => fn(reason));
 }

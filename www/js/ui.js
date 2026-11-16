@@ -105,10 +105,10 @@ export function confirmDialog(msg, { ok = t('common.confirm'), danger = false, t
   });
 }
 
-export function promptDialog(title, value = '', placeholder = '') {
+export function promptDialog(title, value = '', placeholder = '', type = 'text') {
   return new Promise((res) => {
     let result = null;
-    const el = openSheet(`<h2 style="margin-bottom:12px">${esc(title)}</h2><input class="input" id="pd-in" value="${esc(value)}" placeholder="${esc(placeholder)}" autofocus>
+    const el = openSheet(`<h2 style="margin-bottom:12px">${esc(title)}</h2><input class="input" id="pd-in" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}" autofocus>
       <div class="row" style="margin-top:16px"><button class="btn grow" data-r="0">${esc(t('common.cancel'))}</button><button class="btn grow primary" data-r="1">${esc(t('common.ok'))}</button></div>`,
     { center: true, cls: 'dialog', onClose: () => res(result) });
     const inp = el.querySelector('#pd-in');

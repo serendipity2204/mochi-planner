@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "149778668036",
+    "project_id": "mochi-planner-f9a9c",
+    "storage_bucket": "mochi-planner-f9a9c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149778668036:android:e29341a3de05501229b351",
+        "android_client_info": {
+          "package_name": "com.mochiplanner.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2DF8Gw-75Yv_86FTvczII7HSmdzY2jlI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

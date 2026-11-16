@@ -25,7 +25,8 @@ const dyn = {
   'enc.': [...Array(16).keys()].map(String), 'wd.s': [...Array(7).keys()].map(String), 'wd.l': [...Array(7).keys()].map(String), 'mon.': [...Array(12).keys()].map(String),
   'voice.prompt.': ['course','assignment','exam','todo'], 'voice.example.': ['course','assignment','exam','todo'], 'doc.': ['privacy','terms'], 'about.': ['privacy','terms','licenses'],
   'acc.': ['none','bow','flower','glasses','scarf','headphones','partyhat','crown','gradcap'], 'expr.': ['happy','smile','wink','love','star','cool'],
-  'err.': ['speechUnavailable','micDenied','speechFailed','ocrLoad','offlineOCR','ocrFailed','invalidBackup','notFound','saveFailed','generic'],
+  'cloud.state.': ['signedOut','loading','syncing','synced','error','offline'], 'cloud.': ['login','register'],
+  'err.': ['fbInvalidEmail','fbWrongLogin','fbEmailInUse','fbWeakPassword','fbTooMany','offline','fbRecentLogin','cancelled','fbPopupBlocked','fbCredInUse','fbAlreadyLinked','fbProviderOff','fbDomain','fbUserMismatch','fbRules','fbGoogleConfig','fbGeneric','fbTooLarge','fbNotSignedIn','speechUnavailable','micDenied','speechFailed','ocrLoad','offlineOCR','ocrFailed','invalidBackup','notFound','saveFailed','generic'],
 };
 for (const [p, list] of Object.entries(dyn)) list.forEach((x) => used.add(p + x));
 for (const g of ['schedule','ocr','voice','asg','exam','focus','backup','lang']) { used.add(`guide.${g}.q`); used.add(`guide.${g}.a`); }

@@ -8,6 +8,7 @@ import { onBack, onResume, exitApp, notifPermission, isNative } from './native.j
 import { reschedule } from './reminders.js';
 import * as timer from './timer.js';
 import { lockIfNeeded } from './lock.js';
+import * as cloud from './cloud.js';
 
 import * as home from './views/home.js';
 import * as schedule from './views/schedule.js';
@@ -168,6 +169,20 @@ async function boot() {
     setTimeout(() => notifPermission(true).then(reschedule).catch(() => {}), 1200);
   }
   reschedule();
+
+  // Cloud: first-login choice between this device's data and the cloud copy
+  cloud.setConflictResolver((remote) => new Promise((resolve) => {
+    const n = (o) => ['courses', 'assignments', 'exams', 'todos', 'notes'].reduce((a, k) => a + (o[k]?.length || 0), 0);
+    let choice = 'cloud';
+    const el = openSheet(`<h2 style="margin-bottom:8px">☁️ ${t('cloud.conflictTitle')}</h2><p class="small muted" style="margin:0 0 14px;line-height:1.5">${t('cloud.conflictBody', { local: n(store.state), cloud: n(remote) })}</p>
+      <div class="col"><button class="btn primary block" data-c="merge">🔀 ${t('cloud.choiceMerge')}</button><button class="btn block" data-c="cloud">☁️ ${t('cloud.choiceCloud')}</button><button class="btn block" data-c="local">📱 ${t('cloud.choiceLocal')}</button></div>`,
+    { center: true, cls: 'dialog', sticky: true, onClose: () => resolve(choice) });
+    el.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { choice = b.dataset.c; closeSheet(); }));
+  }));
+  cloud.initCloud();
+  const refreshIfIdle = () => { if (!sheetOpen() && !document.activeElement?.matches('input,textarea,select')) render(false); };
+  store.onChange((reason) => { if (['remote', 'restore', 'import'].includes(reason)) { applyLang(); settings.applyAppearance(); reschedule(); refreshIfIdle(); } });
+  cloud.onCloud(() => { if (['settings', 'me'].includes(route.name)) refreshIfIdle(); });
 
   setInterval(() => {
     timer.check();

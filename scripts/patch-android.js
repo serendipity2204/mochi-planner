@@ -47,7 +47,30 @@ if (!mf.includes('android.speech.RecognitionService')) {
 fs.writeFileSync(manifestPath, mf);
 console.log('✓ manifest permissions');
 
-// 3. Version code / name
+// 3. Firebase: google-services.json, Google sign-in flag, minSdk 23
+const gsSrc = path.join(root, 'firebase', 'google-services.json');
+if (fs.existsSync(gsSrc)) {
+  fs.copyFileSync(gsSrc, path.join(app, 'google-services.json'));
+  const gs = JSON.parse(fs.readFileSync(gsSrc, 'utf8'));
+  const hasWebClient = (gs.client || []).some((c) => (c.oauth_client || []).some((o) => o.client_type === 3));
+  if (!hasWebClient) {
+    // Placeholder so the Google sign-in plugin compiles; replaced automatically once the json contains the web client id
+    const vals = path.join(res, 'values', 'mochi_placeholders.xml');
+    fs.writeFileSync(vals, '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <string name="default_web_client_id" translatable="false">MISSING_WEB_CLIENT_ID</string>\n</resources>\n');
+    console.log('! google-services.json has no web OAuth client – Google sign-in will be unavailable until it is updated');
+  }
+  console.log('✓ google-services.json');
+}
+const varsPath = path.join(root, 'android', 'variables.gradle');
+if (fs.existsSync(varsPath)) {
+  let v = fs.readFileSync(varsPath, 'utf8');
+  v = v.replace(/minSdkVersion\s*=\s*\d+/, 'minSdkVersion = 23');
+  if (!v.includes('rgcfaIncludeGoogle')) v = v.replace(/ext\s*\{/, 'ext {\n    rgcfaIncludeGoogle = true');
+  fs.writeFileSync(varsPath, v);
+  console.log('✓ variables.gradle (Google sign-in, minSdk 23)');
+}
+
+// 4. Version code / name
 const gradlePath = path.join(app, 'build.gradle');
 let g = fs.readFileSync(gradlePath, 'utf8');
 g = g.replace(/versionCode\s+\d+/, `versionCode ${build}`).replace(/versionName\s+"[^"]*"/, `versionName "${maj}.${min}.${build}"`);

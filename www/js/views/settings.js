@@ -2,7 +2,8 @@
 import { store, commit, snapshot, listBackups, restoreBackup, exportData, importData, storageUsage, listFiles, delFile, fileRefs, wipeAll } from '../store.js';
 import { t, applyLang, fmtDateTime, fmtDate, weekdayLong } from '../i18n.js';
 import { esc, fmtBytes, dkey, shrinkImage, blobToDataURL } from '../utils.js';
-import { on, go, back, rerender, openSheet, closeSheet, sheetHead, confirmDialog, toast, select, toggle, pickFiles, loading, empty, closeAllSheets } from '../ui.js';
+import { on, go, back, rerender, openSheet, closeSheet, sheetHead, confirmDialog, promptDialog, toast, errMsg, formData, fieldError, select, toggle, pickFiles, loading, empty, closeAllSheets } from '../ui.js';
+import * as cloud from '../cloud.js';
 import { notifPermission, notifyNow, playSound, SOUNDS, saveFile, isNative } from '../native.js';
 import { reschedule, buildReminders } from '../reminders.js';
 import { SECTION_IDS } from './home.js';
@@ -40,16 +41,74 @@ function summary(k) {
   const s = set();
   switch (k) {
     case 'language': return s.lang === 'zh' ? '简体中文' : 'English';
-    case 'account': return S().profile.name || t('me.localAccount');
+    case 'account': return cloud.status.user ? (cloud.status.user.email || S().profile.name) : (S().profile.name ? S().profile.name + ' · ' : '') + t('cloud.notSignedIn');
     case 'notifications': return s.notif.enabled ? (s.notif.dnd ? t('set.onDnd') : t('common.on')) : t('common.off');
     case 'appearance': return t('set.mode.' + s.appearance.mode) + ' · ' + t('color.' + s.appearance.color);
     case 'calendar': return `${t('set.weekStartsOn', { d: weekdayLong(s.cal.weekStart) })} · ${s.cal.timeFmt === '24' ? '24h' : '12h'}`;
-    case 'backup': return s.backup.last ? t('set.lastBackup', { t: fmtDateTime(s.backup.last) }) : t('set.neverBackedUp');
+    case 'backup': return cloud.status.user ? t('cloud.state.' + cloud.status.state) + (s.cloud.lastSync ? ' · ' + fmtDateTime(s.cloud.lastSync) : '') : s.backup.last ? t('set.lastBackup', { t: fmtDateTime(s.backup.last) }) : t('set.neverBackedUp');
     case 'privacy': return s.security.pin ? t('set.pinOn') : t('set.pinOff');
     case 'friends': return t('set.comingV3');
     case 'sound': return `${s.sound.app ? '🔊' : '🔇'} ${s.sound.vibrate ? '📳' : ''}`;
     default: return '';
   }
+}
+
+// ---------- cloud account UI ----------
+let authMode = 'login';
+export function syncBadge() {
+  const st = cloud.status.state;
+  const cls = { synced: 'green', syncing: 'yellow', loading: 'yellow', error: 'red', offline: '' }[st] || '';
+  return `<span class="badge ${cls}">${t('cloud.state.' + st)}</span>`;
+}
+function cloudAccountHTML() {
+  const u = cloud.status.user, st = cloud.status.state;
+  if (!u) {
+    if (st === 'loading') return `<div class="card" style="margin:14px 0">${loading(t('cloud.connecting'))}</div>`;
+    return `<div class="card" style="margin:14px 0"><div class="card-title">☁️ ${t('cloud.title')}</div>
+      <p class="small muted" style="margin:0 0 12px">${t('cloud.intro')}</p>
+      <button class="btn block" data-act="cloud.google" style="background:var(--card-2);color:var(--text);border:1.5px solid var(--line)"><b style="color:#4285F4">G</b> ${t('cloud.google')}</button>
+      <div class="center tiny muted" style="margin:12px 0">— ${t('cloud.orEmail')} —</div>
+      <div class="seg" style="margin-bottom:12px">${['login', 'register'].map((m) => `<button class="${authMode === m ? 'on' : ''}" data-act="cloud.mode" data-m="${m}">${t('cloud.' + m)}</button>`).join('')}</div>
+      <form id="auth-form" novalidate>
+        ${authMode === 'register' ? `<div class="field"><label>${t('acct.nickname')}</label><input class="input" name="name" maxlength="24" value="${esc(S().profile.name)}"></div>` : ''}
+        <div class="field"><label>Email</label><input class="input" name="email" type="email" autocomplete="email" placeholder="name@example.com"></div>
+        <div class="field"><label>${t('cloud.password')}</label><input class="input" name="pw" type="password" autocomplete="${authMode === 'register' ? 'new-password' : 'current-password'}" placeholder="${esc(t('cloud.pwPh'))}"></div>
+        <button class="btn primary block">${t('cloud.' + authMode)}</button>
+      </form>
+      ${authMode === 'login' ? `<button class="btn ghost block sm" style="margin-top:6px" data-act="cloud.forgot">${t('cloud.forgot')}</button>` : ''}
+      ${cloud.status.error && st !== 'signedOut' ? `<div class="err-text" style="margin-top:8px">${esc(t('err.' + cloud.status.error.message))}</div>` : ''}</div>`;
+  }
+  const prov = cloud.providers();
+  const hasPw = prov.includes('password'), hasG = prov.includes('google.com');
+  return `${group(t('cloud.title'), [
+      row('👤', esc(u.displayName || S().profile.name || t('greet.friend')), syncBadge(), esc(u.email || '')),
+      ...(hasPw && !u.emailVerified ? [btnRow('📧', t('cloud.verifyEmail'), 'cloud.verify', t('cloud.verifySub'))] : []),
+      row('🔑', t('cloud.methods'), `<span class="val small">${[hasG ? 'Google ✓' : '', hasPw ? 'Email ✓' : ''].filter(Boolean).join(' · ')}</span>`),
+      ...(!hasG ? [btnRow('🔗', t('cloud.linkGoogle'), 'cloud.linkGoogle')] : []),
+      ...(!hasPw ? [btnRow('🔗', t('cloud.linkPassword'), 'cloud.linkPassword', t('cloud.linkPasswordSub'))] : []),
+      ...(hasPw ? [btnRow('🔒', t('cloud.changePassword'), 'cloud.changePassword')] : []),
+      btnRow('☁️', t('set.backup'), 'cloud.goBackup', set().cloud.lastSync ? t('cloud.lastSync', { t: fmtDateTime(set().cloud.lastSync) }) : ''),
+      btnRow('🚪', t('cloud.signOut'), 'cloud.signOut', t('cloud.signOutSub')),
+    ])}`;
+}
+
+async function cloudBackupList() {
+  const el = openSheet(`${sheetHead(t('cloud.restore'))}<div id="cb-list">${loading()}</div>`);
+  const list = await cloud.listCloudBackups();
+  el.querySelector('#cb-list').innerHTML = `<p class="small muted" style="margin-top:0">${t('cloud.restoreHint')}</p>` + (list.length
+    ? `<div class="list">${list.map((b) => `<div class="item"><span>☁️</span><div class="grow"><div class="title">${fmtDateTime(b.createdAt)}</div><div class="sub">${fmtBytes(b.size || 0)}${b.device === set().cloud.deviceId ? ' · ' + t('cloud.thisDevice') : ''}</div></div><button class="btn sm" data-act="cloud.restoreOne" data-id="${b.id}">${t('backup.restoreBtn')}</button></div>`).join('')}</div>`
+    : empty(t('backup.none')));
+}
+
+function passwordSheet(title, fields, onSubmit) {
+  const el = openSheet(`${sheetHead(title)}<form novalidate>${fields.map(([name, label]) => `<div class="field"><label>${esc(label)}</label><input class="input" type="password" name="${name}" autocomplete="new-password"></div>`).join('')}
+    <div class="sheet-actions"><button class="btn primary">${t('common.save')}</button></div></form>`);
+  el.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = formData(e.target);
+    const btn = e.target.querySelector('.btn.primary'); btn.disabled = true;
+    try { await onSubmit(v, e.target); } catch (err) { toast(errMsg(err), 'err'); } finally { btn.disabled = false; }
+  });
 }
 
 const BUILDERS = {
@@ -63,17 +122,19 @@ const BUILDERS = {
     const counts = `${S().courses.length} ${t('search.courses')} · ${S().assignments.length} ${t('search.assignments')} · ${S().exams.length} ${t('search.exams')} · ${S().notes.length} ${t('search.notes')}`;
     return `<div class="card center">${avatarHTML(88).replace('class="avatar"', 'class="avatar" style="margin:0 auto"')}
         <div class="row" style="justify-content:center;margin-top:10px;flex-wrap:wrap">${['🐷', '🐰', '🐱', '🐻', '🦊', '🐼', '🐥', '🌸'].map((e) => `<button class="btn sm" data-act="acct.emoji" data-e="${e}" style="padding:0 10px">${e}</button>`).join('')}<button class="btn sm" data-act="acct.photo">📷 ${t('acct.photo')}</button></div></div>
+      ${cloudAccountHTML()}
       ${group(t('acct.profile'), [
         row('😊', t('acct.nickname'), `<input class="input" style="max-width:55%" data-set="profile.name" data-type="str" data-root="profile" value="${esc(p.name)}" maxlength="24" placeholder="${esc(t('acct.nicknamePh'))}">`),
-        row('✉️', t('acct.email'), `<input class="input" style="max-width:55%" type="email" data-set="profile.email" data-type="str" data-root="profile" value="${esc(p.email)}" placeholder="name@example.com">`, t('acct.emailSub')),
       ])}
       ${group(t('acct.info'), [
         row('📅', t('acct.created'), `<span class="val">${fmtDate(new Date(p.createdAt))}</span>`),
         row('📦', t('acct.data'), `<span class="val small">${counts}</span>`),
-        row('💾', t('acct.storage'), `<span class="val">${t('acct.localOnly')}</span>`),
+        row('💾', t('acct.storage'), `<span class="val">${cloud.status.user ? t('acct.localAndCloud') : t('acct.localOnly')}</span>`),
       ])}
-      <div class="card" style="margin-bottom:14px"><div class="card-title">☁️ ${t('acct.cloudTitle')}</div><p class="small muted prose" style="margin:0">${t('acct.cloudBody')}</p></div>
-      ${group(t('acct.danger'), [btnRow('🗑️', `<span style="color:var(--red)">${t('acct.delete')}</span>`, 'acct.delete', t('acct.deleteSub'))])}`;
+      ${group(t('acct.danger'), [
+        btnRow('🧹', `<span style="color:var(--red)">${t('acct.delete')}</span>`, 'acct.delete', t('acct.deleteSub')),
+        ...(cloud.status.user ? [btnRow('🗑️', `<span style="color:var(--red)">${t('cloud.deleteAccount')}</span>`, 'cloud.deleteAccount', t('cloud.deleteAccountSub'))] : []),
+      ])}`;
   },
   notifications() {
     const n = set().notif;
@@ -120,8 +181,16 @@ const BUILDERS = {
     ]);
   },
   backup() {
-    const b = set().backup;
-    return `${group(t('backup.cloud'), [`<div class="set-row"><span class="ic">☁️</span><span class="label">${t('backup.cloudSync')}<small>${t('backup.cloudSub')}</small></span><span class="badge">v0.2</span></div>`])}
+    const b = set().backup, c = set().cloud, u = cloud.status.user;
+    const cloudRows = u ? [
+      row('☁️', t('cloud.status'), `<span class="val">${syncBadge()}</span>`, c.lastSync ? t('cloud.lastSync', { t: fmtDateTime(c.lastSync) }) : ''),
+      row('🔄', t('cloud.autoSync'), sw('cloud.autoSync', c.autoSync), t('cloud.autoSyncSub')),
+      btnRow('⚡', t('cloud.syncNow'), 'cloud.sync', cloud.status.remoteNewer ? t('cloud.remoteNewer') : ''),
+      btnRow('📦', t('cloud.backupNow'), 'cloud.backup', c.lastCloudBackup ? t('cloud.lastBackup', { t: fmtDateTime(c.lastCloudBackup) }) : t('cloud.backupSub')),
+      btnRow('♻️', t('cloud.restore'), 'cloud.restoreList', t('cloud.restoreSub')),
+      row('📊', t('cloud.usage'), `<span class="val">${c.size ? fmtBytes(c.size) + ' / 1 MB' : '-'}</span>`, t('cloud.usageSub')),
+    ] : [btnRow('☁️', t('cloud.signInToSync'), 'cloud.goAccount', t('cloud.signInToSyncSub'))];
+    return `${group(t('backup.cloud'), cloudRows)}
       ${group(t('backup.local'), [
         row('🔄', t('backup.auto'), sw('backup.auto', b.auto), t('backup.autoSub')),
         row('🕒', t('backup.last'), `<span class="val">${b.last ? fmtDateTime(b.last) : t('set.neverBackedUp')}</span>`),
@@ -132,7 +201,8 @@ const BUILDERS = {
         btnRow('📤', t('backup.export'), 'backup.export', t('backup.exportSub') + (b.lastExport ? ' · ' + fmtDateTime(b.lastExport) : '')),
         btnRow('📥', t('backup.import'), 'backup.import', t('backup.importSub')),
       ])}
-      ${group(t('backup.storage'), [`<div id="usage">${loading()}</div>`, btnRow('🗂️', t('backup.files'), 'backup.files', t('backup.filesSub'))])}`;
+      ${group(t('backup.storage'), [`<div id="usage">${loading()}</div>`, btnRow('🗂️', t('backup.files'), 'backup.files', t('backup.filesSub'))])}
+      <p class="small muted" style="margin:0 6px">${t('cloud.filesNote')}</p>`;
   },
   privacy() {
     const s = set().security;
@@ -187,6 +257,19 @@ export function mount(root, params) {
     if (path === 'notif.enabled' && el.checked) notifPermission(true).then(() => { reschedule(); rerender(); });
     if (path === 'notif.sound' || path === 'sound.timer') playSound(el.value, 0.3);
     if (path.startsWith('profile')) toast(t('common.saved'));
+    if (path === 'cloud.autoSync' && el.checked && cloud.status.user) cloud.syncNow().catch(() => {});
+  });
+  root.querySelector('#auth-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target, v = formData(f);
+    if (!/^\S+@\S+\.\S+$/.test(v.email)) return fieldError(f, 'email', t('err.fbInvalidEmail'));
+    if (!v.pw || v.pw.length < 6) return fieldError(f, 'pw', t('err.fbWeakPassword'));
+    const btn = f.querySelector('.btn.primary'); btn.disabled = true; btn.textContent = t('common.loading');
+    try {
+      if (authMode === 'register') await cloud.signUpEmail(v.email, v.pw, v.name);
+      else await cloud.signInEmail(v.email, v.pw);
+      toast(t(authMode === 'register' ? 'cloud.registered' : 'cloud.signedIn'));
+    } catch (err) { toast(errMsg(err), 'err'); btn.disabled = false; btn.textContent = t('cloud.' + authMode); }
   });
   if (params.section === 'backup') showUsage(root);
   if (params.section === 'notifications') showPerm(root);
@@ -290,6 +373,57 @@ on({
     const refs = fileRefs(); const files = await listFiles();
     for (const f of files) if (!refs.has(f.id)) await delFile(f.id);
     closeSheet(); toast(t('common.deleted')); filesSheet();
+  },
+  'cloud.mode': (el) => { authMode = el.dataset.m; rerender(); },
+  'cloud.google': async (el) => {
+    el.disabled = true;
+    try { await cloud.signInGoogle(); toast(t('cloud.signedIn')); }
+    catch (e) { if (e.message !== 'cancelled') toast(errMsg(e), 'err'); }
+    finally { el.disabled = false; }
+  },
+  'cloud.forgot': async () => {
+    const email = await promptDialog(t('cloud.forgotTitle'), document.querySelector('#auth-form [name=email]')?.value || '', 'name@example.com', 'email');
+    if (!email) return;
+    await cloud.resetPassword(email);
+    toast(t('cloud.resetSent'));
+  },
+  'cloud.verify': async () => {
+    await cloud.refreshUser();
+    if (cloud.status.user?.emailVerified) { toast(t('cloud.verified')); rerender(); return; }
+    await cloud.resendVerification(); toast(t('cloud.verifySent'));
+  },
+  'cloud.signOut': async () => {
+    if (!(await confirmDialog(t('cloud.signOutMsg'), { ok: t('cloud.signOut') }))) return;
+    await cloud.signOut(); toast(t('cloud.signedOut')); rerender();
+  },
+  'cloud.sync': async () => { await cloud.syncNow(); toast(t('cloud.synced')); rerender(); },
+  'cloud.backup': async () => { toast(t('common.loading')); await cloud.cloudBackup(); toast(t('backup.done')); rerender(); },
+  'cloud.restoreList': () => cloudBackupList(),
+  'cloud.restoreOne': async (el) => {
+    if (!(await confirmDialog(t('cloud.restoreMsg'), { ok: t('backup.restoreBtn') }))) return;
+    await cloud.restoreCloudBackup(el.dataset.id);
+    closeAllSheets(); applyLang(); applyAppearance(); reschedule(); toast(t('backup.restored')); rerender();
+  },
+  'cloud.goAccount': () => go('settings', { section: 'account' }),
+  'cloud.goBackup': () => go('settings', { section: 'backup' }),
+  'cloud.linkGoogle': async () => { await cloud.linkGoogle(); toast(t('cloud.linked')); rerender(); },
+  'cloud.linkPassword': () => passwordSheet(t('cloud.linkPassword'), [['pw', t('cloud.newPassword')], ['pw2', t('cloud.confirmPassword')]], async (v, f) => {
+    if (!v.pw || v.pw.length < 6) return fieldError(f, 'pw', t('err.fbWeakPassword'));
+    if (v.pw !== v.pw2) return fieldError(f, 'pw2', t('cloud.pwMismatch'));
+    await cloud.linkPassword(v.pw); closeSheet(); toast(t('cloud.linked')); rerender();
+  }),
+  'cloud.changePassword': () => passwordSheet(t('cloud.changePassword'), [['cur', t('cloud.currentPassword')], ['pw', t('cloud.newPassword')], ['pw2', t('cloud.confirmPassword')]], async (v, f) => {
+    if (!v.cur) return fieldError(f, 'cur', t('err.required'));
+    if (!v.pw || v.pw.length < 6) return fieldError(f, 'pw', t('err.fbWeakPassword'));
+    if (v.pw !== v.pw2) return fieldError(f, 'pw2', t('cloud.pwMismatch'));
+    await cloud.changePassword(v.cur, v.pw); closeSheet(); toast(t('cloud.pwChanged'));
+  }),
+  'cloud.deleteAccount': async () => {
+    if (!(await confirmDialog(t('cloud.deleteMsg'), { danger: true, ok: t('acct.deleteOk'), title: t('cloud.deleteAccount') }))) return;
+    let pw = null;
+    if (cloud.providers().includes('password')) { pw = await promptDialog(t('cloud.currentPassword'), '', '', 'password'); if (!pw) return; }
+    await cloud.deleteAccount(pw);
+    toast(t('cloud.deleted')); rerender();
   },
   'pin.set': async () => { await setupPin(); rerender(); },
   'pin.change': async () => { if (await verifyPinCancellable()) { await setupPin(); rerender(); } },
