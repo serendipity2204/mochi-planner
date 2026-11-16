@@ -220,7 +220,13 @@ async function googleCredential() {
   const { A } = fb;
   const FA = plug('FirebaseAuthentication');
   if (!FA) throw new Error('fbGoogleConfig');
-  const r = await FA.signInWithGoogle();
+  let r;
+  try { r = await FA.signInWithGoogle(); }
+  catch (e) {
+    if (/cancel/i.test(e?.message || '')) throw e;
+    console.warn('Credential Manager sign-in failed, trying legacy Google Sign-In', e);
+    r = await FA.signInWithGoogle({ useCredentialManager: false });
+  }
   const idToken = r?.credential?.idToken;
   if (!idToken) throw new Error('fbGoogleConfig');
   return A.GoogleAuthProvider.credential(idToken, r.credential.accessToken);

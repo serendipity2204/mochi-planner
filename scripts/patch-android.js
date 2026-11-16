@@ -73,6 +73,19 @@ if (fs.existsSync(varsPath)) {
 // 4. Version code / name
 const gradlePath = path.join(app, 'build.gradle');
 let g = fs.readFileSync(gradlePath, 'utf8');
+// Always sign with the repository key so every build installs over the previous one
+// and matches the SHA-1 registered in Firebase (needed for Google sign-in)
+if (!g.includes('mochiRepoKey')) {
+  g = g.replace(/android\s*\{/, `android {
+    signingConfigs {
+        debug { // mochiRepoKey
+            storeFile file("\${rootDir}/../keystore/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }`);
+}
 g = g.replace(/versionCode\s+\d+/, `versionCode ${build}`).replace(/versionName\s+"[^"]*"/, `versionName "${maj}.${min}.${build}"`);
 fs.writeFileSync(gradlePath, g);
 console.log(`✓ version ${maj}.${min}.${build} (code ${build})`);

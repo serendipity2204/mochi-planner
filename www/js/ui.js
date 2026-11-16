@@ -22,7 +22,9 @@ export function runAction(name, el, ev) {
 export function errMsg(e) {
   const k = 'err.' + (e?.message || 'generic');
   const s = t(k);
-  return s === k ? t('err.generic') : s;
+  if (s === k) return t('err.generic');
+  // Show the technical code for config/unknown cloud errors so problems can be diagnosed
+  return ['err.fbGoogleConfig', 'err.fbGeneric'].includes(k) && e.detail ? `${s} [${String(e.detail).slice(0, 80)}]` : s;
 }
 
 // ---- Router hooks (set by app.js) ----
