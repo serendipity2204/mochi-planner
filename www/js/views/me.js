@@ -23,7 +23,7 @@ export function render() {
     ['✅', 'tasks.todo', 'todo'], ['☁️', 'set.backup', 'settings:backup'], ['⚙️', 'common.settings', 'settings'], ['💡', 'set.help', 'help'], ['ℹ️', 'set.about', 'about'],
   ];
   return `<div class="page">
-    <div class="topbar"><h1>${t('nav.me')}</h1><button class="icon-btn" data-act="nav" data-to="settings">⚙️</button></div>
+    <div class="topbar"><button class="back" data-act="tab" data-to="home" aria-label="${t('nav.home')}">‹</button><h1>${t('nav.me')}</h1><button class="icon-btn" data-act="nav" data-to="settings">⚙️</button></div>
     <button class="card profile" style="width:100%;text-align:left" data-act="me.go" data-to="settings:account">${avatarHTML(68)}
       <div class="grow"><div class="bold" style="font-size:1.25rem">${esc(p.name || t('greet.friend'))}</div><div class="small muted">${esc(p.email || t('me.localAccount'))}</div><div class="tiny muted">${t('me.since', { d: fmtDate(new Date(p.createdAt)) })}</div></div><span class="chev"></span></button>
     <div class="card" style="margin-top:14px"><div class="row" style="gap:14px"><div data-act="pig.poke" style="cursor:pointer">${pigSVG(pigProps({ size: 84, cls: 'pig-anim' }))}</div>

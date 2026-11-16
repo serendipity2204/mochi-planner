@@ -6,6 +6,7 @@ import { on, go, rerender, empty, ring, sheetOpen, celebrate, tap } from '../ui.
 import { pigSVG } from '../pig.js';
 import { pigProps, pigMood, nextClass, classesOn, courseColor, pendingAssignments, urgency, assignmentStatus, assignmentProgress, upcomingExams, examDaysLeft, focusOn, streak, sortedTodos } from '../data.js';
 import { encouragement, pigName } from './focus.js';
+import { avatarHTML } from './me.js';
 import { reschedule } from '../reminders.js';
 
 const S = () => store.state;
@@ -78,7 +79,7 @@ export function render() {
   const order = [...h.sections.filter((s) => SECTIONS[s]), ...SECTION_IDS.filter((s) => !h.sections.includes(s))].filter((s) => !h.hidden.includes(s));
   const dateStr = lang() === 'zh' ? `${d.getMonth() + 1}月${d.getDate()}日` : fmtDate(d, { short: true });
   return `<div class="page">
-    <div class="topbar" style="min-height:40px;margin-bottom:0"><div class="grow small muted bold">${esc(greeting())}</div>
+    <div class="topbar" style="min-height:40px;margin-bottom:0"><button class="me-chip grow" data-act="tab" data-to="me" aria-label="${esc(t('nav.me'))}">${avatarHTML(36)}<span class="small muted bold ellipsis">${esc(greeting())}</span></button>
       <button class="icon-btn" data-act="nav" data-to="search" aria-label="${t('nav.search')}">🔍</button><button class="icon-btn" data-act="nav" data-to="settings" aria-label="${t('common.settings')}">⚙️</button></div>
     <div class="hero">
       <div class="pig-box" data-act="pig.poke">${pigSVG(pigProps({ size: 104, cls: 'pig-anim' }))}</div>

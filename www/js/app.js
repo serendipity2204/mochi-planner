@@ -25,7 +25,8 @@ const ROUTES = {
   help: { render: me.renderHelp },
   about: { render: me.renderAbout },
 };
-const TABS = [['home', '🏠'], ['schedule', '📅'], ['plus'], ['tasks', '📝'], ['focus', '⏱️'], ['me', '🐷']];
+// Phone: 4 tabs with the ＋ in the middle; "Me" is the avatar on Home (and a sidebar item on tablets)
+const TABS = [['home', '🏠'], ['schedule', '📅'], ['plus'], ['tasks', '📝'], ['focus', '⏱️'], ['me', '🐷', true]];
 
 let route = { name: 'home', params: {} };
 const stack = [];
@@ -33,9 +34,9 @@ let main, nav;
 
 function renderNav() {
   const active = TABS.some(([n]) => n === route.name) ? route.name : ({ stats: 'me', notes: 'me', settings: 'me', help: 'me', about: 'me', search: 'home' }[route.name] || 'home');
-  nav.innerHTML = `<div class="nav-brand">${pigSVG({ size: 34, acc: store.state.settings.pig.acc, expr: 'happy' })}${esc(t('app.name'))}</div>` + TABS.map(([n, ic]) => n === 'plus'
+  nav.innerHTML = `<div class="nav-brand">${pigSVG({ size: 34, acc: store.state.settings.pig.acc, expr: 'happy' })}${esc(t('app.name'))}</div>` + TABS.map(([n, ic, sideOnly]) => n === 'plus'
     ? `<button class="nav-plus" data-act="quick" data-label="${esc(t('quick.title'))}" aria-label="${esc(t('quick.title'))}">＋</button>`
-    : `<button class="nav-item ${active === n ? 'active' : ''}" data-act="tab" data-to="${n}"><span class="ni">${ic}</span><span>${t('nav.' + n)}</span></button>`).join('');
+    : `<button class="nav-item ${sideOnly ? 'side-only' : ''} ${active === n ? 'active' : ''}" data-act="tab" data-to="${n}"><span class="ni">${ic}</span><span>${t('nav.' + n)}</span></button>`).join('');
 }
 
 function render(scrollTop = false) {
