@@ -12,7 +12,12 @@
           "package_name": "com.mochiplanner.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "149778668036-e6dlaspvpes9oonn48bkv6574fdvu3em.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD2DF8Gw-75Yv_86FTvczII7HSmdzY2jlI"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "149778668036-e6dlaspvpes9oonn48bkv6574fdvu3em.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
