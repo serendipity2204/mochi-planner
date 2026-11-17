@@ -59,6 +59,8 @@ service cloud.firestore {
           && request.resource.data.from == me()
           && (request.resource.data.type != 'poke' || sharedOf(otherOf(id)).allowReminders != false)
           && (request.resource.data.type == 'poke' || sharedOf(otherOf(id)).allowChat != false);
+        allow update: if signedIn() && resource.data.from == me() && resource.data.type == 'text'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited', 'editedAt']);
         allow delete: if signedIn() && resource.data.from == me();
       }
     }

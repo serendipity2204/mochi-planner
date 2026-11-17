@@ -51,8 +51,8 @@ export function renderFriends() {
     <div class="set-group-title">👫 ${t('friends.list')} (${friends.length})</div>
     ${friends.length ? `<div class="list">${friends.map((f) => {
       const sh = fr.state.shared[f.other];
-      return `<div class="item" style="flex-wrap:wrap"><button class="row grow" style="text-align:left;min-width:0" data-act="chat.open" data-uid="${f.other}">${avatar(fr.avatarOf(f.other))}<div class="grow" style="min-width:0"><div class="title ellipsis">${esc(fr.nameOf(f.other))} ${fr.unreadOf(f.other) ? '<span class="badge red">●</span>' : ''}</div><div class="sub ellipsis">${statusLine(f.other)}</div></div></button>
-        <div class="row" style="gap:6px">${sh?.shareTimetable ? `<button class="icon-btn" data-act="friends.timetable" data-uid="${f.other}" aria-label="${t('friends.timetable')}">📅</button>` : ''}${sh?.allowReminders !== false ? `<button class="icon-btn" data-act="friends.poke" data-uid="${f.other}" aria-label="${t('friends.poke')}">🔔</button>` : ''}<button class="icon-btn" data-act="chat.open" data-uid="${f.other}" aria-label="${t('chat.title')}">💬</button></div></div>`;
+      return `<div class="item" style="flex-wrap:wrap"><button data-act="friends.menu" data-uid="${f.other}" aria-label="${t('chat.more')}">${avatar(fr.avatarOf(f.other))}</button><button class="row grow" style="text-align:left;min-width:0" data-act="chat.open" data-uid="${f.other}"><div class="grow" style="min-width:0"><div class="title ellipsis">${esc(fr.nameOf(f.other))} ${fr.unreadOf(f.other) ? '<span class="badge red">●</span>' : ''}</div><div class="sub ellipsis">${statusLine(f.other)}</div></div></button>
+        <div class="row" style="gap:6px">${sh?.allowReminders !== false ? `<button class="icon-btn" data-act="friends.poke" data-uid="${f.other}" aria-label="${t('friends.poke')}">🔔</button>` : ''}<button class="icon-btn" data-act="friends.menu" data-uid="${f.other}" aria-label="${t('chat.more')}">⋯</button></div></div>`;
     }).join('')}</div>` : `<div class="card">${empty(t('friends.none'))}</div>`}
   </div>`;
 }
@@ -91,7 +91,7 @@ export function renderChat(params) {
   const media = sh?.allowMedia !== false && S().settings.friends.allowMedia !== false;
   return `<div class="page chat-page">
     <div class="topbar chat-top"><button class="back" data-act="back">‹</button>${avatar(fr.avatarOf(chatOther), 40)}<div class="grow" style="min-width:0"><div class="bold ellipsis">${esc(fr.nameOf(chatOther))}</div><div class="tiny ellipsis" id="chat-status">${statusLine(chatOther)}</div></div>
-      ${sh?.shareTimetable ? `<button class="icon-btn" data-act="friends.timetable" data-uid="${chatOther}">📅</button>` : ''}${sh?.allowReminders !== false ? `<button class="icon-btn" data-act="friends.poke" data-uid="${chatOther}">🔔</button>` : ''}</div>
+      ${sh?.shareTimetable ? `<button class="icon-btn" data-act="friends.timetable" data-uid="${chatOther}">📅</button>` : ''}${sh?.allowReminders !== false ? `<button class="icon-btn" data-act="friends.poke" data-uid="${chatOther}">🔔</button>` : ''}<button class="icon-btn" data-act="friends.menu" data-uid="${chatOther}" aria-label="${t('chat.more')}">⋯</button></div>
     <div id="msgs" class="msgs">${loading()}</div>
     <form class="composer" id="composer">
       <button type="button" class="icon-btn" data-act="chat.more" aria-label="${t('chat.share')}">＋</button>
@@ -120,7 +120,7 @@ function msgHTML(m) {
     }
     default: body = esc(m.text || '').replace(/\n/g, '<br>');
   }
-  return `<div class="msg ${mine ? 'mine' : ''} ${m.type}" data-mid="${m.id}"><div class="bubble-msg">${body}</div><div class="msg-time">${time}${mine ? ` <button class="msg-del" data-act="chat.del" data-id="${m.id}" aria-label="${t('common.delete')}">✕</button>` : ''}</div></div>`;
+  return `<div class="msg ${mine ? 'mine' : ''} ${m.type}" data-mid="${m.id}"><div class="bubble-msg">${body}</div><div class="msg-time">${m.edited ? `<span>${t('chat.edited')}</span>` : ''}${time}${mine ? ` <button class="msg-del" data-act="chat.msgMenu" data-id="${m.id}" aria-label="${t('chat.more')}">⋯</button>` : ''}</div></div>`;
 }
 
 function paint() {
@@ -296,5 +296,41 @@ on({
   'chat.recSend': () => finishRecording(),
   'chat.viewImg': (el) => { const m = messages.find((x) => x.id === el.dataset.id); if (m) openSheet(`${sheetHead(t('chat.photo'))}<img src="${m.data}" style="width:100%;border-radius:16px"><div class="sheet-actions"><button class="btn" data-act="chat.saveImg" data-id="${m.id}">⬇️ ${t('file.saveShare')}</button></div>`); },
   'chat.saveImg': async (el) => { const m = messages.find((x) => x.id === el.dataset.id); if (!m) return; const blob = await (await fetch(m.data)).blob(); await saveFile(`mochi-${m.id}.jpg`, blob); },
-  'chat.del': async (el) => { if (!(await confirmDialog(t('chat.delMsg'), { danger: true, ok: t('common.delete') }))) return; await fr.deleteMessage(chatOther, el.dataset.id); },
+  'friends.menu': (el) => {
+    const other = el.dataset.uid, sh = fr.state.shared[other];
+    const row = (ic, label, act, extra = '') => `<button class="set-row" data-act="${act}" data-uid="${other}" ${extra}><span class="ic">${ic}</span><span class="label">${label}</span><span class="chev"></span></button>`;
+    openSheet(`${sheetHead(fr.nameOf(other))}<div class="center" style="margin-bottom:12px">${avatar(fr.avatarOf(other), 72).replace('class="avatar"', 'class="avatar" style="margin:0 auto"')}<div class="small" style="margin-top:8px">${statusLine(other)}</div></div>
+      <div class="set-group">${row('💬', t('chat.title'), 'chat.open')}${sh?.shareTimetable ? row('📅', t('friends.timetable'), 'friends.timetable') : ''}${sh?.allowReminders !== false ? row('🔔', t('friends.poke'), 'friends.poke') : ''}</div>
+      <div class="set-group">${row('✂️', `<span style="color:var(--red)">${t('friends.disconnect')}</span>`, 'friends.disconnect')}</div>`);
+  },
+  'friends.disconnect': async (el) => {
+    const other = el.dataset.uid, f = fr.friendshipWith(other);
+    if (!f) return;
+    if (!(await confirmDialog(t('friends.disconnectMsg', { name: fr.nameOf(other) }), { danger: true, ok: t('friends.disconnect'), title: t('friends.disconnect') }))) return;
+    await fr.removeFriendship(f.id);
+    closeSheet();
+    toast(t('friends.disconnected', { name: fr.nameOf(other) }));
+    if (currentRoute().name === 'chat') go('friends');
+  },
+  'chat.msgMenu': (el) => {
+    const m = messages.find((x) => x.id === el.dataset.id); if (!m) return;
+    openSheet(`${sheetHead(t('chat.msgOptions'))}<div class="set-group">
+      ${m.type === 'text' ? `<button class="set-row" data-act="chat.edit" data-id="${m.id}"><span class="ic">✏️</span><span class="label">${t('chat.edit')}</span></button><button class="set-row" data-act="chat.copy" data-id="${m.id}"><span class="ic">📋</span><span class="label">${t('friends.copy')}</span></button>` : ''}
+      <button class="set-row" data-act="chat.del" data-id="${m.id}"><span class="ic">🗑️</span><span class="label" style="color:var(--red)">${t('common.delete')}</span></button></div>`);
+  },
+  'chat.copy': async (el) => { const m = messages.find((x) => x.id === el.dataset.id); closeSheet(); try { await navigator.clipboard.writeText(m?.text || ''); toast(t('friends.copied')); } catch {} },
+  'chat.edit': (el) => {
+    const m = messages.find((x) => x.id === el.dataset.id); if (!m) return;
+    closeSheet();
+    const sh = openSheet(`${sheetHead(t('chat.edit'))}<form><textarea class="input" name="text" maxlength="1000" style="min-height:110px" autofocus>${esc(m.text || '')}</textarea>
+      <div class="sheet-actions"><button type="button" class="btn" data-act="sheet.close">${t('common.cancel')}</button><button class="btn primary">${t('common.save')}</button></div></form>`);
+    const ta = sh.querySelector('textarea'); setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 80);
+    sh.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = ta.value.trim();
+      if (!text || text === m.text) { closeSheet(); return; }
+      try { await fr.editMessage(chatOther, m, text); closeSheet(); toast(t('chat.editedToast')); } catch (err) { toast(errMsg(err), 'err'); }
+    });
+  },
+  'chat.del': async (el) => { closeSheet(); if (!(await confirmDialog(t('chat.delMsg'), { danger: true, ok: t('common.delete') }))) return; await fr.deleteMessage(chatOther, el.dataset.id); },
 });

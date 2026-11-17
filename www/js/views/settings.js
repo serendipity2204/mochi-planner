@@ -241,7 +241,7 @@ const BUILDERS = {
         row('📣', t('friends.notify'), sw('friends.notify', f.notify), t('friends.notifySub')),
       ])}
       ${f.shareTimetable && courses.length ? `<div class="set-group-title">${t('friends.whichCourses')}</div><div class="set-group">${courses.map((c) => `<label class="set-row"><span class="dot" style="background:${esc(c.color || '#EC6C9C')}"></span><span class="label">${esc(c.name)}<small>${esc(c.code || '')}</small></span><input type="checkbox" class="share-course" data-id="${c.id}" ${sel.includes(c.id) ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary)"></label>`).join('')}</div>` : ''}
-      ${fr.state.friends.length ? `<div class="set-group-title">${t('friends.manage')}</div><div class="set-group">${fr.state.friends.map((x) => `<div class="set-row"><span class="label">${esc(fr.nameOf(x.other))}</span><button class="btn sm danger" data-act="friends.remove" data-id="${x.id}" data-uid="${x.other}">${t('friends.remove')}</button></div>`).join('')}</div>` : ''}
+      ${fr.state.friends.length ? `<div class="set-group-title">${t('friends.manage')}</div><div class="set-group">${fr.state.friends.map((x) => `<div class="set-row"><span class="label">${esc(fr.nameOf(x.other))}</span><button class="btn sm danger" data-act="friends.disconnect" data-uid="${x.other}">${t('friends.disconnect')}</button></div>`).join('')}</div>` : ''}
       <p class="small muted" style="margin:0 6px">${t('friends.privacyNote')}</p>`;
   },
   sound() {

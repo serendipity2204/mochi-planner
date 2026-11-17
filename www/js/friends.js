@@ -197,6 +197,17 @@ export function listenMessages(other, cb, limit = 80) {
   return F.onSnapshot(q, (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })).reverse()), (e) => cb(null, cloud.normalize(e)));
 }
 export const deleteMessage = wrap(async (other, mid) => { const { F, db } = FS(); await F.deleteDoc(F.doc(db, 'chats', pairId(state.me, other), 'messages', mid)); });
+export const editMessage = wrap(async (other, msg, text) => {
+  const { F, db } = FS();
+  const id = pairId(state.me, other);
+  await F.updateDoc(F.doc(db, 'chats', id, 'messages', msg.id), { text, edited: true, editedAt: Date.now() });
+  // keep the chat-list preview in sync when the latest message was edited
+  const last = state.chats[id]?.last;
+  if (last && last.from === state.me && last.type === 'text' && Math.abs((last.at || 0) - (msg.clientTime || 0)) < 5000) {
+    await F.setDoc(F.doc(db, 'chats', id), { last: { ...last, text: text.slice(0, 80) } }, { merge: true });
+  }
+});
+export const friendshipWith = (uid) => [...state.friends, ...state.requests, ...state.outgoing].find((x) => x.other === uid);
 
 // ---------- helpers for views ----------
 export const nameOf = (uid) => state.profiles[uid]?.name || t('greet.friend');
