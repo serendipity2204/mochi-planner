@@ -185,7 +185,7 @@ async function boot() {
     const n = (o) => ['courses', 'assignments', 'exams', 'todos', 'notes'].reduce((a, k) => a + (o[k]?.length || 0), 0);
     let choice = 'cloud';
     const el = openSheet(`<h2 style="margin-bottom:8px">☁️ ${t('cloud.conflictTitle')}</h2><p class="small muted" style="margin:0 0 14px;line-height:1.5">${t('cloud.conflictBody', { local: n(store.state), cloud: n(remote) })}</p>
-      <div class="col"><button class="btn primary block" data-c="merge">🔀 ${t('cloud.choiceMerge')}</button><button class="btn block" data-c="cloud">☁️ ${t('cloud.choiceCloud')}</button><button class="btn block" data-c="local">📱 ${t('cloud.choiceLocal')}</button></div>`,
+      <div class="col"><button class="btn primary block" data-c="cloud">☁️ ${t('cloud.choiceCloud')}</button><button class="btn block" data-c="merge">🔀 ${t('cloud.choiceMerge')}</button><button class="btn block" data-c="local">📱 ${t('cloud.choiceLocal')}</button></div><p class="tiny muted" style="margin:10px 0 0">${t('cloud.conflictHint')}</p>`,
     { center: true, cls: 'dialog', sticky: true, onClose: () => resolve(choice) });
     el.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { choice = b.dataset.c; closeSheet(); }));
   }));

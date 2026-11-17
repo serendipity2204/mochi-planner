@@ -136,7 +136,7 @@ const BUILDERS = {
       ])}
       ${group(t('acct.danger'), [
         btnRow('🧹', `<span style="color:var(--red)">${t('acct.delete')}</span>`, 'acct.delete', t('acct.deleteSub')),
-        ...(cloud.status.user ? [btnRow('🗑️', `<span style="color:var(--red)">${t('cloud.deleteAccount')}</span>`, 'cloud.deleteAccount', t('cloud.deleteAccountSub'))] : []),
+        ...(cloud.status.user ? [btnRow('🔄', `<span style="color:var(--red)">${t('cloud.resetData')}</span>`, 'cloud.resetData', t('cloud.resetDataSub')), btnRow('🗑️', `<span style="color:var(--red)">${t('cloud.deleteAccount')}</span>`, 'cloud.deleteAccount', t('cloud.deleteAccountSub'))] : []),
       ])}`;
   },
   notifications() {
@@ -458,6 +458,11 @@ on({
     if (v.pw !== v.pw2) return fieldError(f, 'pw2', t('cloud.pwMismatch'));
     await cloud.changePassword(v.cur, v.pw); closeSheet(); toast(t('cloud.pwChanged'));
   }),
+  'cloud.resetData': async () => {
+    if (!(await confirmDialog(t('cloud.resetDataMsg', { email: cloud.status.user?.email || '' }), { danger: true, ok: t('cloud.resetData'), title: t('cloud.resetData') }))) return;
+    await cloud.resetAccountData();
+    applyLang(); applyAppearance(); reschedule(); toast(t('cloud.resetDone')); rerender();
+  },
   'cloud.deleteAccount': async () => {
     if (!(await confirmDialog(t('cloud.deleteMsg'), { danger: true, ok: t('acct.deleteOk'), title: t('cloud.deleteAccount') }))) return;
     let pw = null;

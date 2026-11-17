@@ -1,7 +1,7 @@
 // Cloud account & sync (Firebase Auth + Firestore), loaded on demand from the official CDN.
 // Data model: users/{uid} = { data: JSON(state), clientTime, device, updatedAt, size }
 //             users/{uid}/backups/{id} = { data, createdAt, device, size }
-import { store, commit, replaceState, flush } from './store.js';
+import { store, commit, replaceState, flush, snapshot, defaultState } from './store.js';
 import { FIREBASE_CONFIG, FIREBASE_SDK_VERSION } from './firebase-config.js';
 import { isNative, plug } from './native.js';
 import { uid as newId, debounce } from './utils.js';
@@ -166,6 +166,16 @@ function startListener() {
 }
 function stopListener() { if (unsub) { unsub(); unsub = null; } }
 
+// A clean state for an account, keeping only this device's display preferences
+function freshStateFor(user) {
+  const cur = store.state.settings;
+  const s = defaultState();
+  Object.assign(s.settings, { lang: cur.lang, appearance: cur.appearance, cal: cur.cal, sound: cur.sound, onboarded: true });
+  s.profile.name = user.displayName || '';
+  s.profile.email = user.email || '';
+  return s;
+}
+
 async function onUser(user) {
   status.user = user;
   stopListener();
@@ -176,19 +186,30 @@ async function onUser(user) {
   }
   const firstTime = C().uid !== user.uid;
   if (!C().deviceId) C().deviceId = newId();
+  // Data on this device that belongs to a different account must never reach this account
+  const owner = C().dataOwner;
+  if (firstTime && owner && owner !== user.uid) {
+    try { await snapshot('before-switch'); } catch {}
+    await replaceState(freshStateFor(user), 'remote', keepDeviceKeys);
+  }
   Object.assign(C(), { uid: user.uid, email: user.email });
   if (firstTime) C().lastRemote = 0;
   if (!store.state.profile.name && user.displayName) store.state.profile.name = user.displayName;
   if (!store.state.profile.email && user.email) store.state.profile.email = user.email;
   commit('cloud-meta');
   status.state = 'syncing'; status.error = null; emit();
-  try { await initialSync(firstTime); startListener(); status.state = 'synced'; status.remoteNewer = false; }
+  try {
+    await initialSync(firstTime);
+    C().dataOwner = user.uid; commit('cloud-meta');
+    startListener(); status.state = 'synced'; status.remoteNewer = false;
+  }
   catch (e) { status.state = navigator.onLine ? 'error' : 'offline'; status.error = normalize(e); }
   emit();
 }
 
 // ---------- public API ----------
 export function initCloud() {
+  if (C().uid && !C().dataOwner) { C().dataOwner = C().uid; commit('cloud-meta'); }
   store.onChange((reason) => {
     if (['cloud-meta', 'remote', 'backup', 'wipe'].includes(reason)) return;
     C().localChange = Date.now();
@@ -301,6 +322,15 @@ export const deleteAccount = wrap(async (password) => {
   await A.deleteUser(u);
   Object.assign(C(), { uid: null, email: null, lastSync: null, lastRemote: 0 });
   commit('cloud-meta');
+});
+
+// Wipe this account's data (device + cloud) – used to clean up an account that received someone else's data
+export const resetAccountData = wrap(async () => {
+  if (!status.user) throw new Error('fbNotSignedIn');
+  try { await snapshot('before-reset'); } catch {}
+  await replaceState(freshStateFor(status.user), 'remote', keepDeviceKeys);
+  C().localChange = Date.now();
+  await upload();
 });
 
 // ---------- cloud backups ----------

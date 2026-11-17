@@ -20,7 +20,7 @@ const dyn = {
   'set.': ['language','account','notifications','appearance','calendar','widgets','backup','privacy','friends','sound','help','about'],
   'set.mode.': ['light','dark','system'], 'color.': ['pink','peach','lavender','mint','sky'], 'sound.': ['chime','bell','bubble','piano','none'],
   'notif.cat.': ['class','assignment','exam','review','pomodoro','todo'], 'note.cat.': ['lecture','handout','brief','personal','other'],
-  'help.area.': ['schedule','tasks','focus','notes','settings','other'], 'backup.kind.': ['auto','manual','before-import'],
+  'help.area.': ['schedule','tasks','focus','notes','settings','other'], 'backup.kind.': ['auto','manual','before-import','before-switch','before-reset'],
   'stats.': ['day','week','month'], 'pri.': ['high','med','low'], 'ob.title': ['1','2','3'], 'ob.body': ['1','2','3'],
   'enc.': [...Array(16).keys()].map(String), 'wd.s': [...Array(7).keys()].map(String), 'wd.l': [...Array(7).keys()].map(String), 'mon.': [...Array(12).keys()].map(String),
   'voice.prompt.': ['course','assignment','exam','todo'], 'voice.example.': ['course','assignment','exam','todo'], 'doc.': ['privacy','terms'], 'about.': ['privacy','terms','licenses'],
