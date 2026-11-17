@@ -239,6 +239,7 @@ const BUILDERS = {
         row('💬', t('friends.allowChat'), sw('friends.allowChat', f.allowChat), t('friends.allowChatSub')),
         row('📷', t('friends.allowMedia'), sw('friends.allowMedia', f.allowMedia), t('friends.allowMediaSub')),
         row('📣', t('friends.notify'), sw('friends.notify', f.notify), t('friends.notifySub')),
+        isNative() && f.notify ? row('⚡', t('friends.instant'), sw('friends.instant', f.instant), t('friends.instantSub')) : '',
       ])}
       ${f.shareTimetable && courses.length ? `<div class="set-group-title">${t('friends.whichCourses')}</div><div class="set-group">${courses.map((c) => `<label class="set-row"><span class="dot" style="background:${esc(c.color || '#EC6C9C')}"></span><span class="label">${esc(c.name)}<small>${esc(c.code || '')}</small></span><input type="checkbox" class="share-course" data-id="${c.id}" ${sel.includes(c.id) ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary)"></label>`).join('')}</div>` : ''}
       ${fr.state.friends.length ? `<div class="set-group-title">${t('friends.manage')}</div><div class="set-group">${fr.state.friends.map((x) => `<div class="set-row"><span class="label">${esc(fr.nameOf(x.other))}</span><button class="btn sm danger" data-act="friends.disconnect" data-uid="${x.other}">${t('friends.disconnect')}</button></div>`).join('')}</div>` : ''}

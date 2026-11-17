@@ -55,19 +55,43 @@ public class MessageCheckWorker extends Worker {
     @NonNull @Override
     public Result doWork() {
         Context ctx = getApplicationContext();
+        check(ctx);
+        ensure(ctx); // keeps the 1-minute alarm chain / fast mode alive (e.g. after the system cleared it)
+        return Result.success();
+    }
+
+    static boolean enabled(Context ctx) { return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("enabled", false); }
+    static boolean instant(Context ctx) { SharedPreferences p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE); return p.getBoolean("enabled", false) && p.getBoolean("instant", false); }
+
+    /** Start/stop everything according to the saved settings. */
+    static void ensure(Context ctx) {
+        boolean on = enabled(ctx);
+        schedule(ctx, on);
+        MessageAlarmReceiver.schedule(ctx, on);
+        if (instant(ctx)) MessageService.start(ctx); else MessageService.stop(ctx);
+    }
+
+    /** Looks for unread friend messages and notifies. Safe to call from any background thread. */
+    static synchronized void check(Context ctx) {
         SharedPreferences p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        if (!p.getBoolean("enabled", false)) return Result.success();
-        if (appInForeground(ctx)) return Result.success(); // the app shows its own alerts
+        if (!p.getBoolean("enabled", false)) return;
+        if (appInForeground(ctx)) return; // the app shows its own alerts
         String uid = p.getString("uid", ""), rt = p.getString("refreshToken", ""), key = p.getString("apiKey", ""), proj = p.getString("projectId", "");
-        if (uid.isEmpty() || rt.isEmpty() || key.isEmpty() || proj.isEmpty()) return Result.success();
+        if (uid.isEmpty() || rt.isEmpty() || key.isEmpty() || proj.isEmpty()) return;
         try {
-            // 1. Refresh token -> ID token
-            JSONObject tok = new JSONObject(http("https://securetoken.googleapis.com/v1/token?key=" + key, "POST",
-                "application/x-www-form-urlencoded", "grant_type=refresh_token&refresh_token=" + URLEncoder.encode(rt, "UTF-8"), null, ctx));
-            String idToken = tok.optString("id_token", "");
-            if (idToken.isEmpty()) return Result.success();
-            String newRt = tok.optString("refresh_token", "");
-            if (!newRt.isEmpty() && !newRt.equals(rt)) p.edit().putString("refreshToken", newRt).apply();
+            // 1. ID token (cached ~55 min)
+            String idToken = p.getString("idToken", "");
+            if (idToken.isEmpty() || System.currentTimeMillis() > p.getLong("idTokenExp", 0)) {
+                JSONObject tok = new JSONObject(http("https://securetoken.googleapis.com/v1/token?key=" + key, "POST",
+                    "application/x-www-form-urlencoded", "grant_type=refresh_token&refresh_token=" + URLEncoder.encode(rt, "UTF-8"), null, ctx));
+                idToken = tok.optString("id_token", "");
+                if (idToken.isEmpty()) return;
+                long ttl = tok.optLong("expires_in", 3600) * 1000L;
+                SharedPreferences.Editor e = p.edit().putString("idToken", idToken).putLong("idTokenExp", System.currentTimeMillis() + ttl - 5 * 60 * 1000L);
+                String newRt = tok.optString("refresh_token", "");
+                if (!newRt.isEmpty() && !newRt.equals(rt)) e.putString("refreshToken", newRt);
+                e.apply();
+            }
 
             // 2. Chats that include me
             JSONObject q = new JSONObject().put("structuredQuery", new JSONObject()
@@ -76,8 +100,14 @@ public class MessageCheckWorker extends Worker {
                     .put("field", new JSONObject().put("fieldPath", "users"))
                     .put("op", "ARRAY_CONTAINS")
                     .put("value", new JSONObject().put("stringValue", uid)))));
-            String res = http("https://firestore.googleapis.com/v1/projects/" + proj + "/databases/(default)/documents:runQuery",
-                "POST", "application/json", q.toString(), idToken, ctx);
+            String res;
+            try {
+                res = http("https://firestore.googleapis.com/v1/projects/" + proj + "/databases/(default)/documents:runQuery",
+                    "POST", "application/json", q.toString(), idToken, ctx);
+            } catch (Exception ex) {
+                if (String.valueOf(ex.getMessage()).contains("HTTP 401")) p.edit().remove("idToken").apply();
+                throw ex;
+            }
             JSONArray rows = new JSONArray(res);
 
             JSONObject notified = new JSONObject(p.getString("notified", "{}"));
@@ -108,10 +138,9 @@ public class MessageCheckWorker extends Worker {
                 show(ctx, chatId.hashCode(), title, body, from, labels.optString("channel", "Friends"));
             }
             if (changed) p.edit().putString("notified", notified.toString()).apply();
-        } catch (Exception e) {
-            return Result.success(); // try again next round
+        } catch (Exception ignored) {
+            // try again next round
         }
-        return Result.success();
     }
 
     private static JSONObject map(JSONObject v) { return v == null || v.optJSONObject("mapValue") == null ? null : v.optJSONObject("mapValue").optJSONObject("fields"); }

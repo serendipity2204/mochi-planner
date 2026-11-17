@@ -43,6 +43,9 @@ const perms = [
   'android.permission.RECORD_AUDIO',
   'android.permission.VIBRATE',
   'android.permission.WAKE_LOCK',
+  'android.permission.USE_EXACT_ALARM',
+  'android.permission.FOREGROUND_SERVICE',
+  'android.permission.FOREGROUND_SERVICE_SPECIAL_USE',
 ];
 for (const p of perms) {
   if (!mf.includes(`"${p}"`)) mf = mf.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
@@ -62,6 +65,20 @@ const widgets = [['TodayWidget', 'widget_today_name', 'widget_today_info'], ['As
   ['TodosWidget', 'widget_todo_name', 'widget_todos_info'], ['ExamsWidget', 'widget_exam_name', 'widget_exams_info']];
 for (const [cls, label, info] of widgets) {
   if (!mf.includes(`.${cls}"`)) mf = mf.replace('</application>', receiver(cls, label, info) + '    </application>');
+}
+// Friend-message checks (1-minute alarm, optional fast-mode service, restart after reboot)
+if (!mf.includes('.MessageAlarmReceiver"')) {
+  mf = mf.replace('</application>', `        <receiver android:name=".MessageAlarmReceiver" android:exported="false" />
+        <receiver android:name=".BootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <service android:name=".MessageService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Keeps checking for new messages from friends so they arrive quickly" />
+        </service>
+    </application>`);
 }
 fs.writeFileSync(manifestPath, mf);
 console.log('✓ manifest permissions');

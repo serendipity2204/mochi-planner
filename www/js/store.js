@@ -49,7 +49,7 @@ export function defaultSettings() {
     focus: { focus: 25, short: 5, long: 15, longEvery: 4, dailyGoal: 120, autoNext: false },
     backup: { auto: true, last: null, lastExport: null },
     security: { pin: null, lockOnResume: true },
-    friends: { shareTimetable: true, sharedCourses: 'all', allowReminders: true, allowChat: true, allowMedia: true, notify: true },
+    friends: { shareTimetable: true, sharedCourses: 'all', allowReminders: true, allowChat: true, allowMedia: true, notify: true, instant: false },
     cloud: { autoSync: true, deviceId: '', uid: null, email: null, lastSync: null, lastRemote: 0, localChange: 0 },
   };
 }

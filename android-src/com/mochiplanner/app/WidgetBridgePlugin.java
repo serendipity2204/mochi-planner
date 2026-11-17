@@ -74,23 +74,23 @@ public class WidgetBridgePlugin extends Plugin {
         Context ctx = getContext();
         SharedPreferences p = ctx.getSharedPreferences(MessageCheckWorker.PREFS, Context.MODE_PRIVATE);
         boolean on = Boolean.TRUE.equals(call.getBoolean("enabled", false));
-        SharedPreferences.Editor e = p.edit().putBoolean("enabled", on);
+        SharedPreferences.Editor e = p.edit().putBoolean("enabled", on).putBoolean("instant", Boolean.TRUE.equals(call.getBoolean("instant", false)));
         if (on) {
             String uid = call.getString("uid", "");
-            if (!uid.equals(p.getString("uid", ""))) e.putString("notified", "{}");
+            if (!uid.equals(p.getString("uid", ""))) e.putString("notified", "{}").remove("idToken");
             e.putString("uid", uid)
              .putString("apiKey", call.getString("apiKey", ""))
              .putString("projectId", call.getString("projectId", ""))
              .putString("names", call.getString("names", "{}"))
              .putString("labels", call.getString("labels", "{}"));
             String rt = call.getString("refreshToken", "");
-            if (!rt.isEmpty()) e.putString("refreshToken", rt);
+            if (!rt.isEmpty() && !rt.equals(p.getString("refreshToken", ""))) e.putString("refreshToken", rt).remove("idToken");
             e.apply();
             mergeNotified(p, call.getString("notified", "{}"));
         } else {
-            e.remove("refreshToken").remove("uid").apply();
+            e.remove("refreshToken").remove("uid").remove("idToken").apply();
         }
-        MessageCheckWorker.schedule(ctx, on);
+        MessageCheckWorker.ensure(ctx);
         call.resolve();
     }
 
