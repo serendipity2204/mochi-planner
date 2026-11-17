@@ -5,7 +5,7 @@ import * as cloud from './cloud.js';
 import { notifyNow, playSound, vibrate } from './native.js';
 import { t } from './i18n.js';
 import { debounce, dkey, toMin, parseDate } from './utils.js';
-import { courseColor } from './data.js';
+import { courseColor, expandCourse } from './data.js';
 
 export const pairId = (a, b) => (a < b ? `${a}_${b}` : `${b}_${a}`);
 const FS = () => cloud.getFB();
@@ -128,7 +128,7 @@ function sharedPayload() {
   const courses = s.shareTimetable ? store.state.courses.filter((c) => s.sharedCourses === 'all' || (s.sharedCourses || []).includes(c.id)) : [];
   return {
     shareTimetable: !!s.shareTimetable, allowReminders: s.allowReminders !== false, allowChat: s.allowChat !== false, allowMedia: s.allowMedia !== false,
-    timetable: courses.map((c) => ({ name: c.name || '', code: c.code || '', start: c.start, end: c.end, days: c.days || [], startDate: c.startDate || '', endDate: c.endDate || '', location: c.location || '', color: courseColor(c) })),
+    timetable: courses.flatMap(expandCourse).map((c) => ({ name: c.name || '', code: c.code || '', start: c.start, end: c.end, days: c.days || [], startDate: c.startDate || '', endDate: c.endDate || '', location: c.location || '', type: c.type || '', color: courseColor(c) })),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '', updatedAt: Date.now(),
   };
 }

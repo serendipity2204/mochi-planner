@@ -32,7 +32,7 @@ export function buildReminders(now = new Date()) {
         const lead = Number(c.remind ?? n.classLead);
         if (lead < 0) continue;
         const s = at(dkey(d), c.start);
-        push(`c|${c.id}|${dkey(d)}`, new Date(s - lead * 60000), t('notif.classTitle', { name: c.name || c.code }),
+        push(`c|${c.id}|${c.sid || ''}|${dkey(d)}`, new Date(s - lead * 60000), t('notif.classTitle', { name: c.name || c.code }),
           t('notif.classBody', { time: fmtTime(c.start), loc: c.location || '-', min: lead }), 'class');
       }
     }

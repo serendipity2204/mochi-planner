@@ -6,13 +6,30 @@ import { ACCESSORIES, EXPRESSIONS } from './pig.js';
 const S = () => store.state;
 
 // ---------- Courses ----------
+// A course has one or more weekly sessions: { id, days[], start, end, location, type }.
+// Older data stored a single session on the course itself; sessionsOf() handles both.
+export function sessionsOf(c) {
+  if (c.sessions?.length) return c.sessions;
+  return [{ id: 's0', days: c.days || [], start: c.start || '09:00', end: c.end || '10:00', location: c.location || '', type: '' }];
+}
+// One entry per (course, session), shaped like a course so every view can use it directly
+export const expandCourse = (c) => sessionsOf(c).map((s) => ({ ...c, start: s.start, end: s.end, days: s.days || [], location: s.location || '', type: s.type || '', sid: s.id, id: c.id }));
+export const allSessions = () => S().courses.flatMap(expandCourse);
+
+// Keep legacy top-level fields mirrored from the first session (older app versions read them)
+const dayRank = (x) => Math.min(...(x.days?.length ? x.days.map((d) => (d === 0 ? 7 : d)) : [9]));
+export function normalizeCourse(c) {
+  const ss = [...sessionsOf(c)].sort((a, b) => dayRank(a) - dayRank(b) || toMin(a.start) - toMin(b.start));
+  return { ...c, sessions: ss, days: ss[0].days, start: ss[0].start, end: ss[0].end, location: ss[0].location || '' };
+}
+
 export function courseActiveOn(c, date) {
   const k = dkey(date);
   if (c.startDate && k < c.startDate) return false;
   if (c.endDate && k > c.endDate) return false;
   return (c.days || []).includes(date.getDay());
 }
-export const classesOn = (date) => S().courses.filter((c) => courseActiveOn(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
+export const classesOn = (date) => allSessions().filter((c) => courseActiveOn(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
 
 export function nextClass(now = new Date()) {
   for (let i = 0; i < 14; i++) {
@@ -25,16 +42,18 @@ export function nextClass(now = new Date()) {
   return null;
 }
 
+// Overlaps between the sessions of `course` and every other session (including its own other sessions)
 export function findConflicts(course) {
   const out = [];
-  for (const o of S().courses) {
-    if (o.id === course.id) continue;
-    const sharedDays = (course.days || []).filter((d) => (o.days || []).includes(d));
-    if (!sharedDays.length) continue;
-    const rangeOverlap = (!course.endDate || !o.startDate || o.startDate <= course.endDate) && (!o.endDate || !course.startDate || course.startDate <= o.endDate);
-    if (!rangeOverlap) continue;
-    if (toMin(course.start) < toMin(o.end) && toMin(o.start) < toMin(course.end)) out.push({ course: o, days: sharedDays });
-  }
+  const mine = expandCourse(course);
+  const others = [...S().courses.filter((o) => o.id !== course.id).flatMap(expandCourse)];
+  const rangeOverlap = (x, y) => (!x.endDate || !y.startDate || y.startDate <= x.endDate) && (!y.endDate || !x.startDate || x.startDate <= y.endDate);
+  const clash = (x, y) => {
+    const days = (x.days || []).filter((d) => (y.days || []).includes(d));
+    return days.length && rangeOverlap(x, y) && toMin(x.start) < toMin(y.end) && toMin(y.start) < toMin(x.end) ? days : null;
+  };
+  for (const x of mine) for (const y of others) { const d = clash(x, y); if (d) out.push({ course: y, days: d }); }
+  for (let i = 0; i < mine.length; i++) for (let j = i + 1; j < mine.length; j++) { const d = clash(mine[i], mine[j]); if (d) out.push({ course: mine[j], days: d, self: true }); }
   return out;
 }
 

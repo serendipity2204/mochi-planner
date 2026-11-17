@@ -3,7 +3,7 @@ import { store, commit } from '../store.js';
 import { t, fmtTime, fmtDate, weekdayShort, weekdayLong, monthName, lang, relDay } from '../i18n.js';
 import { esc, uid, dkey, parseDate, addDays, startOfDay, toMin, weekStart, COURSE_COLORS, colorFor } from '../utils.js';
 import { on, go, rerender, openSheet, closeSheet, sheetHead, confirmDialog, toast, formData, fieldError, field, input, select, empty, loading, pickFiles, tap, $ } from '../ui.js';
-import { classesOn, findConflicts, courseColor, eventsOn, isComplete, assignmentStatus, examDaysLeft, courseColorByKey } from '../data.js';
+import { classesOn, findConflicts, courseColor, eventsOn, sessionsOf, normalizeCourse, isComplete, assignmentStatus, examDaysLeft, courseColorByKey } from '../data.js';
 import { parseTimetableText } from '../parse.js';
 import { voiceParse } from '../voice.js';
 import { reschedule } from '../reminders.js';
@@ -57,7 +57,7 @@ function weekStrip(d) {
 export function dayList(d, { compact = false } = {}) {
   const e = eventsOn(d);
   const rows = [];
-  for (const c of e.classes) rows.push(`<button class="item" data-act="course.open" data-id="${c.id}"><span class="bar" style="background:${courseColor(c)}"></span><div class="grow"><div class="title ellipsis">${esc(c.name || c.code)}</div><div class="sub ellipsis">${esc([c.code, c.location, c.lecturer].filter(Boolean).join(' · '))}</div></div><div class="right"><b style="color:var(--text)">${fmtTime(c.start)}</b><br>${fmtTime(c.end)}</div></button>`);
+  for (const c of e.classes) rows.push(`<button class="item" data-act="course.open" data-id="${c.id}"><span class="bar" style="background:${courseColor(c)}"></span><div class="grow"><div class="title ellipsis">${esc(c.name || c.code)}</div><div class="sub ellipsis">${esc([c.code, typeLabel(c.type), c.location, c.lecturer].filter(Boolean).join(' · '))}</div></div><div class="right"><b style="color:var(--text)">${fmtTime(c.start)}</b><br>${fmtTime(c.end)}</div></button>`);
   for (const x of e.exams) rows.push(`<button class="item" data-act="exam.open" data-id="${x.id}"><span class="bar" style="background:var(--red)"></span><div class="grow"><div class="title">📝 ${esc(x.course)}</div><div class="sub">${t('exam.exam')} · ${esc(x.location || '')}</div></div><div class="right"><b style="color:var(--red)">${fmtTime(x.time || '09:00')}</b></div></button>`);
   for (const a of e.assignments) rows.push(`<button class="item" data-act="asg.open" data-id="${a.id}"><span class="dot ${assignmentStatus(a)}"></span><div class="grow"><div class="title ellipsis">${esc(a.title)}</div><div class="sub">${t('asg.due')} ${fmtTime(a.dueTime || '23:59')} ${a.course ? '· ' + esc(a.course) : ''}</div></div></button>`);
   for (const p of e.plan) rows.push(`<button class="item ${p.done ? 'done' : ''}" data-act="exam.open" data-id="${p.exam.id}"><span>📖</span><div class="grow"><div class="title ellipsis">${esc(p.title)}</div><div class="sub">${t('exam.studyPlan')} · ${esc(p.exam.course)}</div></div></button>`);
@@ -126,27 +126,63 @@ function monthView(d) {
     <div class="card"><div class="card-title">${fmtDate(st.date, { short: true })} ${weekdayLong(d.getDay())}</div>${dayList(d, { compact: true })}</div></div>`;
 }
 
-// ---------------- Course form ----------------
+// ---------------- Course form (one course, several weekly sessions) ----------------
+const TYPES = ['', 'lecture', 'tutorial', 'lab', 'other'];
+const typeLabel = (ty) => (ty ? t('course.type.' + ty) : '');
+export const sessionLine = (x) => `${(x.days || []).map(weekdayShort).join('/')} ${fmtTime(x.start)}–${fmtTime(x.end)}${x.location ? ' · ' + x.location : ''}${x.type ? ' · ' + typeLabel(x.type) : ''}`;
+
+function sessionCard(x, i, total) {
+  return `<div class="sess" data-sid="${x.id}">
+    <div class="row" style="margin-bottom:8px"><b class="small grow">🕘 ${t('course.sessionN', { n: i + 1 })}</b>
+      <select class="input" data-k="type" style="width:auto;min-height:36px;padding:4px 10px">${TYPES.map((ty) => `<option value="${ty}" ${ty === (x.type || '') ? 'selected' : ''}>${ty ? typeLabel(ty) : t('course.typeNone')}</option>`).join('')}</select>
+      ${total > 1 ? `<button type="button" class="icon-btn" data-delsess aria-label="${t('common.delete')}">✕</button>` : ''}</div>
+    <div class="daypick" style="margin-bottom:8px">${dayOrder().map((w) => `<button type="button" data-day="${w}" class="${(x.days || []).includes(w) ? 'on' : ''}">${weekdayShort(w)}</button>`).join('')}</div>
+    <div class="row" style="margin-bottom:8px"><input class="input" type="time" data-k="start" value="${esc(x.start || '09:00')}" aria-label="${t('course.start')}"><span>–</span><input class="input" type="time" data-k="end" value="${esc(x.end || '11:00')}" aria-label="${t('course.end')}"></div>
+    <input class="input" data-k="location" value="${esc(x.location || '')}" placeholder="📍 ${esc(t('course.locationPh'))}">
+  </div>`;
+}
+
 export function openCourseForm(course = {}, opts = {}) {
-  const c = { days: [], color: '', remind: '', ...course };
+  const c = { color: '', remind: '', ...course };
   const isNew = !c.id;
+  // Voice/OCR prefill may give one session as flat fields
+  let sessions = (course.sessions?.length ? course.sessions : sessionsOf({ days: c.days || [], start: c.start || '09:00', end: c.end || '11:00', location: c.location || '' })).map((x) => ({ ...x, id: x.id && x.id !== 's0' ? x.id : uid() }));
   const swatches = COURSE_COLORS.map((col) => `<button type="button" class="dot" data-color="${col}" style="width:30px;height:30px;background:${col};border:3px solid ${c.color === col ? 'var(--text)' : 'transparent'}"></button>`).join('');
   const el = openSheet(`${sheetHead(isNew ? t('course.add') : t('course.edit'))}
     ${c._heard ? `<div class="badge" style="margin-bottom:10px">🎤 “${esc(c._heard)}”</div>` : ''}
     <form id="course-form" novalidate>
       ${field(t('course.name') + ' *', input('name', c.name, `placeholder="${esc(t('course.namePh'))}" autofocus`))}
-      <div class="field-row">${field(t('course.code'), input('code', c.code, 'placeholder="MAT101" autocapitalize="characters"'))}${field(t('course.location'), input('location', c.location, `placeholder="${esc(t('course.locationPh'))}"`))}</div>
-      <div class="field-row">${field(t('course.start') + ' *', input('start', c.start || '09:00', 'type="time"'))}${field(t('course.end') + ' *', input('end', c.end || '11:00', 'type="time"'))}</div>
-      <div class="field"><label>${t('course.days')} *</label><div class="daypick" id="daypick">${dayOrder().map((w) => `<button type="button" data-day="${w}" class="${c.days.includes(w) ? 'on' : ''}">${weekdayShort(w)}</button>`).join('')}</div></div>
-      ${field(t('course.lecturer'), input('lecturer', c.lecturer, `placeholder="${esc(t('course.lecturerPh'))}"`))}
+      <div class="field-row">${field(t('course.code'), input('code', c.code, 'placeholder="MAT101" autocapitalize="characters"'))}${field(t('course.lecturer'), input('lecturer', c.lecturer, `placeholder="${esc(t('course.lecturerPh'))}"`))}</div>
+      <div class="field"><label>${t('course.sessions')} *</label><div class="tiny muted" style="margin-bottom:4px">${t('course.sessionsHint')}</div><div id="sessions"></div>
+        <button type="button" class="btn block sm" id="add-sess">＋ ${t('course.addSession')}</button></div>
       <div class="field-row">${field(t('course.startDate'), input('startDate', c.startDate || '', 'type="date"'))}${field(t('course.endDate'), input('endDate', c.endDate || '', 'type="date"'))}</div>
       <div class="tiny muted" style="margin:-6px 0 12px">${t('course.repeatHint')}</div>
       ${field(t('course.remind'), select('remind', reminderOpts(), c.remind ?? ''))}
       <div class="field"><label>${t('course.color')}</label><div class="row wrap" id="swatches">${swatches}</div></div>
       <div class="sheet-actions">${isNew ? '' : `<button type="button" class="btn danger" data-act="course.delete" data-id="${c.id}">${t('common.delete')}</button>`}<button class="btn primary" type="submit">${t('common.save')}</button></div>
     </form>`);
+  const box = el.querySelector('#sessions');
+  const read = () => [...box.querySelectorAll('.sess')].map((n) => {
+    const x = { id: n.dataset.sid };
+    n.querySelectorAll('[data-k]').forEach((i) => (x[i.dataset.k] = i.value.trim()));
+    x.days = [...n.querySelectorAll('.daypick .on')].map((b) => +b.dataset.day).sort();
+    return x;
+  });
+  const draw = () => { box.innerHTML = sessions.map((x, i) => sessionCard(x, i, sessions.length)).join(''); };
+  draw();
+  box.addEventListener('click', (e) => {
+    const d = e.target.closest('.daypick [data-day]');
+    if (d) { d.classList.toggle('on'); tap(); return; }
+    if (e.target.closest('[data-delsess]')) { const id = e.target.closest('.sess').dataset.sid; sessions = read().filter((x) => x.id !== id); draw(); }
+  });
+  el.querySelector('#add-sess').addEventListener('click', () => {
+    sessions = read();
+    const last = sessions[sessions.length - 1] || {};
+    sessions.push({ id: uid(), days: [], start: last.start || '09:00', end: last.end || '11:00', location: last.location || '', type: '' });
+    draw();
+    box.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
   let color = c.color;
-  el.querySelector('#daypick').addEventListener('click', (e) => { const b = e.target.closest('[data-day]'); if (b) { b.classList.toggle('on'); tap(); } });
   el.querySelector('#swatches').addEventListener('click', (e) => {
     const b = e.target.closest('[data-color]'); if (!b) return;
     color = b.dataset.color; el.querySelectorAll('[data-color]').forEach((x) => (x.style.borderColor = x === b ? 'var(--text)' : 'transparent'));
@@ -154,24 +190,26 @@ export function openCourseForm(course = {}, opts = {}) {
   el.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target, v = formData(f);
-    v.days = [...el.querySelectorAll('#daypick .on')].map((b) => +b.dataset.day).sort();
+    sessions = read();
     if (!v.name && !v.code) return fieldError(f, 'name', t('err.required'));
     if (!v.name) v.name = v.code;
-    if (!v.start || !v.end) return fieldError(f, 'start', t('err.required'));
-    if (toMin(v.end) <= toMin(v.start)) return fieldError(f, 'end', t('err.endAfterStart'));
-    if (!v.days.length) { toast(t('err.pickDay'), 'err'); return; }
+    for (const [i, x] of sessions.entries()) {
+      const node = box.children[i];
+      if (!x.days.length) { node.style.borderColor = 'var(--red)'; node.scrollIntoView({ block: 'center' }); return toast(t('course.sessionNeedsDay', { n: i + 1 }), 'err'); }
+      if (!x.start || !x.end || toMin(x.end) <= toMin(x.start)) { node.style.borderColor = 'var(--red)'; node.scrollIntoView({ block: 'center' }); return toast(t('course.sessionBadTime', { n: i + 1 }), 'err'); }
+    }
     if (v.startDate && v.endDate && v.endDate < v.startDate) return fieldError(f, 'endDate', t('err.endAfterStart'));
     v.code = v.code.toUpperCase();
     v.remind = v.remind === '' ? null : Number(v.remind);
-    const rec = { ...c, ...v, color: color || c.color || nextColor(v.code || v.name), id: c.id || uid() };
+    const rec = normalizeCourse({ ...c, ...v, sessions, color: color || c.color || nextColor(v.code || v.name), id: c.id || uid() });
     delete rec._heard;
     const conflicts = findConflicts(rec);
     if (conflicts.length) {
-      const names = conflicts.map((x) => `${x.course.code || x.course.name} (${x.days.map(weekdayShort).join('/')} ${fmtTime(x.course.start)}-${fmtTime(x.course.end)})`).join('\n');
+      const names = [...new Set(conflicts.map((x) => `${x.course.code || x.course.name} (${x.days.map(weekdayShort).join('/')} ${fmtTime(x.course.start)}-${fmtTime(x.course.end)})`))].join('\n');
       const ok = await confirmDialog(t('course.conflictMsg', { list: names }), { title: t('course.conflict'), ok: t('course.saveAnyway') });
       if (!ok) return;
     }
-    if (isNew) S().courses.push(rec); else Object.assign(S().courses.find((x) => x.id === c.id), rec);
+    if (isNew) S().courses.push(rec); else { const cur = S().courses.find((x) => x.id === c.id); Object.keys(cur).forEach((k) => delete cur[k]); Object.assign(cur, rec); }
     commit('course'); reschedule();
     closeSheet();
     toast(isNew ? t('course.added') : t('common.saved'));
@@ -186,10 +224,13 @@ function openCourse(id) {
   const related = S().assignments.filter((a) => a.course && (a.course === c.code || a.course === c.name));
   const exams = S().exams.filter((e) => e.course === c.code || e.course === c.name);
   const row = (ic, label, val) => (val ? `<div class="set-row"><span class="ic">${ic}</span><span class="label">${esc(label)}</span><span class="val">${esc(val)}</span></div>` : '');
+  const ss = sessionsOf(c);
   openSheet(`${sheetHead(c.name)}
-    <div class="card" style="background:${courseColor(c)};color:#fff;border:0;margin-bottom:14px"><div class="bold" style="font-size:1.3rem">${esc(c.code || c.name)}</div><div>${c.days.map(weekdayLong).join('、')} · ${fmtTime(c.start)} – ${fmtTime(c.end)}</div></div>
+    <div class="card" style="background:${courseColor(c)};color:#fff;border:0;margin-bottom:14px"><div class="bold" style="font-size:1.3rem">${esc(c.code || c.name)}</div><div class="small">${t('course.perWeek', { n: ss.reduce((a, x) => a + (x.days || []).length, 0) })}</div></div>
+    <div class="set-group-title">🕘 ${t('course.sessions')}</div>
+    <div class="set-group">${ss.map((x) => `<div class="set-row"><span class="ic">${x.type === 'lab' ? '🧪' : x.type === 'tutorial' ? '✏️' : '📖'}</span><span class="label">${esc((x.days || []).map(weekdayLong).join('、'))}${x.type ? ` <span class="badge">${esc(typeLabel(x.type))}</span>` : ''}<small>📍 ${esc(x.location || '-')}</small></span><span class="val"><b style="color:var(--text)">${fmtTime(x.start)}</b><br>${fmtTime(x.end)}</span></div>`).join('')}</div>
     <div class="set-group">
-      ${row('📍', t('course.location'), c.location)}${row('👩‍🏫', t('course.lecturer'), c.lecturer)}
+      ${row('👩‍🏫', t('course.lecturer'), c.lecturer)}
       ${row('📅', t('course.period'), c.startDate || c.endDate ? `${c.startDate ? fmtDate(c.startDate) : '…'} → ${c.endDate ? fmtDate(c.endDate) : '…'}` : t('course.everyWeek'))}
       ${row('⏰', t('course.remind'), c.remind == null ? t('remind.default') + ` (${remindLabel(S().settings.notif.classLead)})` : c.remind < 0 ? t('remind.none') : remindLabel(c.remind))}
       ${row('📚', t('nav.tasks'), t('course.related', { a: related.length, e: exams.length }))}
@@ -200,7 +241,7 @@ function openCourse(id) {
 function courseListSheet() {
   const list = [...S().courses].sort((a, b) => (a.code || a.name).localeCompare(b.code || b.name));
   openSheet(`${sheetHead(t('course.all'))}
-    ${list.length ? `<div class="list">${list.map((c) => `<button class="item" data-act="course.open" data-id="${c.id}"><span class="bar" style="background:${courseColor(c)}"></span><div class="grow"><div class="title">${esc(c.name)}</div><div class="sub">${esc(c.code || '')} · ${c.days.map(weekdayShort).join(' ')} ${fmtTime(c.start)}-${fmtTime(c.end)}</div></div><span class="chev"></span></button>`).join('')}</div>` : empty(t('course.none'))}
+    ${list.length ? `<div class="list">${list.map((c) => `<button class="item" data-act="course.open" data-id="${c.id}"><span class="bar" style="background:${courseColor(c)}"></span><div class="grow" style="min-width:0"><div class="title">${esc(c.name)} <span class="small muted">${esc(c.code || '')}</span></div>${sessionsOf(c).map((x) => `<div class="sub ellipsis">${esc(sessionLine(x))}</div>`).join('')}</div><span class="chev"></span></button>`).join('')}</div>` : empty(t('course.none'))}
     <div class="sheet-actions"><button class="btn" data-act="course.ocr">📷 ${t('course.scan')}</button><button class="btn primary" data-act="course.add">＋ ${t('course.add')}</button></div>`);
 }
 
@@ -272,11 +313,17 @@ function importOCR() {
     const v = {}; row.querySelectorAll('[data-k]').forEach((i) => (v[i.dataset.k] = i.value.trim()));
     v.days = [...row.querySelectorAll('.daypick .on')].map((b) => +b.dataset.day);
     if (!(v.name || v.code) || !v.start || !v.end || !v.days.length || toMin(v.end) <= toMin(v.start)) { skipped++; row.style.borderColor = 'var(--red)'; continue; }
-    const rec = { id: uid(), name: v.name || v.code, code: v.code.toUpperCase(), start: v.start, end: v.end, days: v.days.sort(), location: v.location, lecturer: v.lecturer, startDate: sd, endDate: ed, remind: null, color: nextColor(v.code || v.name) };
-    if (findConflicts(rec).length) conflicts++;
-    S().courses.push(rec); added++;
+    const sess = { id: uid(), days: v.days.sort(), start: v.start, end: v.end, location: v.location, type: '' };
+    const key = (v.code || v.name).toUpperCase();
+    const existing = S().courses.find((x) => (x.code || x.name).toUpperCase() === key && x._ocr);
+    if (existing) { existing.sessions.push(sess); Object.assign(existing, normalizeCourse(existing)); }
+    else {
+      const rec = normalizeCourse({ id: uid(), name: v.name || v.code, code: v.code.toUpperCase(), sessions: [sess], lecturer: v.lecturer, startDate: sd, endDate: ed, remind: null, color: nextColor(v.code || v.name), _ocr: true });
+      S().courses.push(rec); added++;
+    }
     row.remove();
   }
+  for (const c of S().courses) { if (c._ocr) { if (findConflicts(c).length) conflicts++; delete c._ocr; } }
   if (added) { commit('course'); reschedule(); }
   if (skipped) { toast(t('ocr.someInvalid', { n: skipped }), 'err'); rerender(); return; }
   closeSheet();

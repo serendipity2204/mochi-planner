@@ -4,7 +4,8 @@ import { t, fmtDate, fmtTime, weekdayShort } from '../i18n.js';
 import { esc, uid, dkey } from '../utils.js';
 import { on, rerender, openSheet, closeSheet, sheetHead, confirmDialog, toast, formData, fieldError, field, input, select, empty } from '../ui.js';
 import { thumbsHTML, hydrateThumbs, addAttachments, attachCtx } from '../attach.js';
-import { courseOptions, courseColorByKey, isComplete } from '../data.js';
+import { courseOptions, courseColorByKey, isComplete, sessionsOf } from '../data.js';
+import { sessionLine } from './schedule.js';
 
 const S = () => store.state;
 const CATS = ['lecture', 'handout', 'brief', 'personal', 'other'];
@@ -81,8 +82,8 @@ function results() {
   const match = (...f) => !q || f.some((x) => String(x || '').toLowerCase().includes(q));
   const groups = [];
   if (ss.type === 'all' || ss.type === 'courses') {
-    const r = S().courses.filter((c) => courseOk(c.code || c.name) && match(c.name, c.code, c.location, c.lecturer) && (!hasDate || ((!c.endDate || !ss.from || c.endDate >= ss.from) && (!c.startDate || !ss.to || c.startDate <= ss.to))));
-    if (r.length) groups.push([t('search.courses'), r.map((c) => `<button class="item" data-act="course.open" data-id="${c.id}"><span>📚</span><div class="grow"><div class="title">${hl(c.name, q)}</div><div class="sub">${hl([c.code, c.location, c.lecturer].filter(Boolean).join(' · '), q)} · ${c.days.map(weekdayShort).join(' ')} ${fmtTime(c.start)}</div></div></button>`)]);
+    const r = S().courses.filter((c) => courseOk(c.code || c.name) && match(c.name, c.code, c.lecturer, ...sessionsOf(c).map((x) => x.location)) && (!hasDate || ((!c.endDate || !ss.from || c.endDate >= ss.from) && (!c.startDate || !ss.to || c.startDate <= ss.to))));
+    if (r.length) groups.push([t('search.courses'), r.map((c) => `<button class="item" data-act="course.open" data-id="${c.id}"><span>📚</span><div class="grow"><div class="title">${hl(c.name, q)}</div><div class="sub">${hl([c.code, c.lecturer].filter(Boolean).join(' · '), q)}${sessionsOf(c).map((x) => `<br>${hl(sessionLine(x), q)}`).join('')}</div></div></button>`)]);
   }
   if (ss.type === 'all' || ss.type === 'assignments') {
     const r = S().assignments.filter((a) => courseOk(a.course) && (!hasDate || inRange(a.dueDate)) && match(a.title, a.desc, a.notes, a.course, ...(a.subtasks || []).map((x) => x.title)));

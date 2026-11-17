@@ -7,7 +7,8 @@ import { pigSVG } from '../pig.js';
 import * as fr from '../friends.js';
 import * as cloud from '../cloud.js';
 import { saveFile, isNative, playSound } from '../native.js';
-import { pigProps, sortedAssignments, upcomingExams } from '../data.js';
+import { pigProps, sortedAssignments, upcomingExams, sessionsOf, normalizeCourse } from '../data.js';
+import { sessionLine } from './schedule.js';
 import { APP } from '../config.js';
 
 const S = () => store.state;
@@ -115,7 +116,7 @@ function msgHTML(m) {
     case 'card': {
       const c = m.card || {};
       const ic = { course: '📚', assignment: '📝', exam: '🎯' }[c.kind] || '📎';
-      body = `<div class="msg-card"><div class="bold">${ic} ${esc(c.title || '')}</div><div class="small muted">${esc(c.sub || '')}</div>${!mine ? `<button class="btn sm" style="margin-top:6px" data-act="chat.saveCard" data-id="${m.id}">＋ ${t('chat.saveCard')}</button>` : ''}</div>`;
+      body = `<div class="msg-card"><div class="bold">${ic} ${esc(c.title || '')}</div><div class="small muted" style="white-space:pre-line">${esc(c.sub || '')}</div>${!mine ? `<button class="btn sm" style="margin-top:6px" data-act="chat.saveCard" data-id="${m.id}">＋ ${t('chat.saveCard')}</button>` : ''}</div>`;
       break;
     }
     default: body = esc(m.text || '').replace(/\n/g, '<br>');
@@ -220,7 +221,7 @@ function shareCardSheet() {
   const courses = S().courses.slice(0, 30), asg = sortedAssignments().filter((a) => a.dueDate).slice(0, 20), exams = upcomingExams().slice(0, 20);
   const item = (kind, id, ic, title, sub) => `<button class="item" data-act="chat.sendCard" data-kind="${kind}" data-id="${id}"><span>${ic}</span><div class="grow"><div class="title">${esc(title)}</div><div class="sub">${esc(sub)}</div></div></button>`;
   openSheet(`${sheetHead(t('chat.share'))}
-    ${courses.length ? `<div class="set-group-title">📚 ${t('search.courses')}</div><div class="list">${courses.map((c) => item('course', c.id, '📚', c.name, `${c.code || ''} ${c.days.map(weekdayShort).join(' ')} ${fmtTime(c.start)}-${fmtTime(c.end)}`)).join('')}</div>` : ''}
+    ${courses.length ? `<div class="set-group-title">📚 ${t('search.courses')}</div><div class="list">${courses.map((c) => item('course', c.id, '📚', c.name, `${c.code || ''} ${sessionsOf(c).map(sessionLine).join(' | ')}`)).join('')}</div>` : ''}
     ${asg.length ? `<div class="set-group-title">📝 ${t('search.assignments')}</div><div class="list">${asg.map((a) => item('assignment', a.id, '📝', a.title, `${a.course || ''} · ${t('asg.due')} ${fmtDate(a.dueDate)} ${fmtTime(a.dueTime || '23:59')}`)).join('')}</div>` : ''}
     ${exams.length ? `<div class="set-group-title">🎯 ${t('search.exams')}</div><div class="list">${exams.map((e) => item('exam', e.id, '🎯', e.course, `${fmtDate(e.date)} ${fmtTime(e.time || '09:00')} ${e.location || ''}`)).join('')}</div>` : ''}
     ${!courses.length && !asg.length && !exams.length ? empty(t('chat.nothingToShare')) : ''}`);
@@ -229,7 +230,8 @@ function shareCardSheet() {
 function cardFor(kind, id) {
   if (kind === 'course') {
     const c = S().courses.find((x) => x.id === id);
-    return { kind, title: c.name, sub: `${c.code || ''} · ${c.days.map(weekdayShort).join(' ')} ${fmtTime(c.start)}-${fmtTime(c.end)} ${c.location || ''}`.trim(), data: { name: c.name, code: c.code, start: c.start, end: c.end, days: c.days, startDate: c.startDate, endDate: c.endDate, location: c.location, lecturer: c.lecturer } };
+    const ss = sessionsOf(c);
+    return { kind, title: c.name, sub: `${c.code ? c.code + ' · ' : ''}${ss.map(sessionLine).join('\n')}`, data: { name: c.name, code: c.code, sessions: ss, start: ss[0].start, end: ss[0].end, days: ss[0].days, startDate: c.startDate, endDate: c.endDate, location: ss[0].location, lecturer: c.lecturer } };
   }
   if (kind === 'assignment') {
     const a = S().assignments.find((x) => x.id === id);
@@ -242,7 +244,7 @@ function cardFor(kind, id) {
 function saveCard(m) {
   const c = m.card; if (!c?.data) return;
   const d = c.data;
-  if (c.kind === 'course') S().courses.push({ id: uid(), name: d.name || d.code, code: d.code || '', start: d.start, end: d.end, days: d.days || [], startDate: d.startDate || '', endDate: d.endDate || '', location: d.location || '', lecturer: d.lecturer || '', remind: null, color: '' });
+  if (c.kind === 'course') S().courses.push(normalizeCourse({ id: uid(), name: d.name || d.code, code: d.code || '', sessions: (d.sessions?.length ? d.sessions : [{ days: d.days || [], start: d.start, end: d.end, location: d.location || '', type: '' }]).map((x) => ({ ...x, id: uid() })), startDate: d.startDate || '', endDate: d.endDate || '', lecturer: d.lecturer || '', remind: null, color: '' }));
   else if (c.kind === 'assignment') S().assignments.push({ id: uid(), title: d.title, course: d.course || '', dueDate: d.dueDate, dueTime: d.dueTime || '23:59', desc: d.desc || '', notes: '', files: [], remind: null, subtasks: (d.subtasks || []).map((s) => ({ id: uid(), title: s, done: false })), createdAt: Date.now() });
   else S().exams.push({ id: uid(), course: d.course, date: d.date, time: d.time || '09:00', location: d.location || '', notes: d.notes || '', remindDays: [...S().settings.notif.examDays], plan: [], goalHours: '' });
   commit('friend-card');
