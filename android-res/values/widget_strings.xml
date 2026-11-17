@@ -4,4 +4,8 @@
     <string name="widget_today_desc">Today\'s timetable, updates automatically</string>
     <string name="widget_asg_name">Mochi · Assignments</string>
     <string name="widget_asg_desc">Pending assignments with due countdown</string>
+    <string name="widget_todo_name">Mochi · To-do</string>
+    <string name="widget_todo_desc">Your unfinished to-dos by priority</string>
+    <string name="widget_exam_name">Mochi · Exam countdown</string>
+    <string name="widget_exam_desc">Upcoming exams with days left</string>
 </resources>

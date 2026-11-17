@@ -58,8 +58,10 @@ const receiver = (cls, label, info) => `        <receiver android:name=".${cls}"
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/${info}" />
         </receiver>
 `;
-if (!mf.includes('.TodayWidget')) {
-  mf = mf.replace('</application>', receiver('TodayWidget', 'widget_today_name', 'widget_today_info') + receiver('AssignmentsWidget', 'widget_asg_name', 'widget_assignments_info') + '    </application>');
+const widgets = [['TodayWidget', 'widget_today_name', 'widget_today_info'], ['AssignmentsWidget', 'widget_asg_name', 'widget_assignments_info'],
+  ['TodosWidget', 'widget_todo_name', 'widget_todos_info'], ['ExamsWidget', 'widget_exam_name', 'widget_exams_info']];
+for (const [cls, label, info] of widgets) {
+  if (!mf.includes(`.${cls}"`)) mf = mf.replace('</application>', receiver(cls, label, info) + '    </application>');
 }
 fs.writeFileSync(manifestPath, mf);
 console.log('✓ manifest permissions');

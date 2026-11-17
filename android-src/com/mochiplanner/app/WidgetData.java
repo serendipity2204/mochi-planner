@@ -47,6 +47,36 @@ public final class WidgetData {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
         for (int id : m.getAppWidgetIds(new ComponentName(c, TodayWidget.class))) m.updateAppWidget(id, buildToday(c));
         for (int id : m.getAppWidgetIds(new ComponentName(c, AssignmentsWidget.class))) m.updateAppWidget(id, buildAssignments(c));
+        for (int id : m.getAppWidgetIds(new ComponentName(c, TodosWidget.class))) m.updateAppWidget(id, buildTodos(c));
+        for (int id : m.getAppWidgetIds(new ComponentName(c, ExamsWidget.class))) m.updateAppWidget(id, buildExams(c));
+    }
+
+    static Class<?> providerFor(String kind) {
+        if ("assignments".equals(kind)) return AssignmentsWidget.class;
+        if ("todos".equals(kind)) return TodosWidget.class;
+        if ("exams".equals(kind)) return ExamsWidget.class;
+        return TodayWidget.class;
+    }
+
+    static long startOfToday() {
+        Calendar c = Calendar.getInstance();
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        return c.getTimeInMillis();
+    }
+
+    /** Whole days from today to the given local-midnight timestamp (negative = past). */
+    static int daysUntil(long dayStartMs) {
+        return (int) Math.round((dayStartMs - startOfToday()) / 86400000.0);
+    }
+
+    static String relDay(JSONObject d, int n) {
+        if (n < 0) return label(d, "overdue", "Overdue");
+        if (n == 0) return label(d, "todayShort", "Today");
+        if (n == 1) return label(d, "tomorrow", "Tomorrow");
+        return label(d, "daysLeft", "%dd left").replace("%d", String.valueOf(n));
     }
 
     static String label(JSONObject d, String k, String def) {
@@ -208,6 +238,84 @@ public final class WidgetData {
         }
         if (list.length() > shown) {
             v.setTextViewText(R.id.w_more, label(d, "more", "+%d more").replace("%d", String.valueOf(list.length() - shown)));
+            v.setViewVisibility(R.id.w_more, View.VISIBLE);
+        }
+        return v;
+    }
+
+    static RemoteViews buildTodos(Context c) {
+        JSONObject d = load(c);
+        RemoteViews v = base(c, label(d, "todo", "To-do"), d, 3);
+        if (d == null) {
+            empty(v, label(d, "openApp", "Open Mochi Planner once to load your data"));
+            return v;
+        }
+        JSONArray list = d.optJSONArray("todos");
+        if (list == null || list.length() == 0) {
+            empty(v, label(d, "noTodo", "Nothing to do"));
+            return v;
+        }
+        int shown = Math.min(MAX_ROWS, list.length());
+        for (int i = 0; i < shown; i++) {
+            JSONObject o = list.optJSONObject(i);
+            String pri = o.optString("pr");
+            int bar = "high".equals(pri) ? RED : "low".equals(pri) ? GREEN : YELLOW;
+            v.setViewVisibility(ROWS[i], View.VISIBLE);
+            v.setInt(BARS[i], "setBackgroundColor", bar);
+            v.setTextViewText(TITLES[i], "○ " + o.optString("t"));
+            v.setTextColor(TITLES[i], TEXT);
+            v.setTextViewText(SUBS[i], o.optString("pl"));
+            long day = o.optLong("day", 0);
+            if (day > 0) {
+                int n = daysUntil(day);
+                v.setTextViewText(RIGHTS[i], relDay(d, n));
+                v.setTextColor(RIGHTS[i], n < 0 ? RED : n == 0 ? YELLOW : TEXT);
+            } else {
+                v.setTextViewText(RIGHTS[i], "");
+            }
+        }
+        if (list.length() > shown) {
+            v.setTextViewText(R.id.w_more, label(d, "more", "+%d more").replace("%d", String.valueOf(list.length() - shown)));
+            v.setViewVisibility(R.id.w_more, View.VISIBLE);
+        }
+        return v;
+    }
+
+    static RemoteViews buildExams(Context c) {
+        JSONObject d = load(c);
+        RemoteViews v = base(c, label(d, "exam", "Exams"), d, 4);
+        if (d == null) {
+            empty(v, label(d, "openApp", "Open Mochi Planner once to load your data"));
+            return v;
+        }
+        JSONArray all = d.optJSONArray("exams");
+        List<JSONObject> list = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        if (all != null) {
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject o = all.optJSONObject(i);
+                if (o != null && o.optLong("at") > now - 3L * 3600000L) list.add(o);
+            }
+        }
+        if (list.isEmpty()) {
+            empty(v, label(d, "noExam", "No upcoming exams"));
+            return v;
+        }
+        int shown = Math.min(MAX_ROWS, list.size());
+        for (int i = 0; i < shown; i++) {
+            JSONObject o = list.get(i);
+            int n = daysUntil(o.optLong("day"));
+            v.setViewVisibility(ROWS[i], View.VISIBLE);
+            v.setInt(BARS[i], "setBackgroundColor", n <= 3 ? RED : PINK);
+            v.setTextViewText(TITLES[i], o.optString("t"));
+            v.setTextColor(TITLES[i], TEXT);
+            v.setTextViewText(SUBS[i], o.optString("w"));
+            String right = n <= 0 ? label(d, "todayShort", "Today") : label(d, "examDays", "%d days").replace("%d", String.valueOf(n));
+            v.setTextViewText(RIGHTS[i], right);
+            v.setTextColor(RIGHTS[i], n <= 3 ? RED : PINK);
+        }
+        if (list.size() > shown) {
+            v.setTextViewText(R.id.w_more, label(d, "more", "+%d more").replace("%d", String.valueOf(list.size() - shown)));
             v.setViewVisibility(R.id.w_more, View.VISIBLE);
         }
         return v;

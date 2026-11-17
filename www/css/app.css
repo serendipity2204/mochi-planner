@@ -378,3 +378,4 @@ mark { background: var(--primary-2); color: inherit; border-radius: 4px; padding
 .wpv-row em { font-style: normal; font-size: .7rem; text-align: right; flex: none; }
 .wpv-row.past b, .wpv-row.past em { color: #A08890; }
 .wpv-empty { text-align: center; color: #9B8790; font-size: .82rem; padding: 18px 0 10px; }
+.grid-2 > .card { margin: 0 !important; }

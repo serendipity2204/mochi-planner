@@ -4,4 +4,8 @@
     <string name="widget_today_desc">今天的课程表，自动更新</string>
     <string name="widget_asg_name">糯糯 · 待完成作业</string>
     <string name="widget_asg_desc">待完成的作业和截止倒计时</string>
+    <string name="widget_todo_name">糯糯 · 待办事项</string>
+    <string name="widget_todo_desc">未完成的待办，按优先级排列</string>
+    <string name="widget_exam_name">糯糯 · 考试倒计时</string>
+    <string name="widget_exam_desc">即将到来的考试和剩余天数</string>
 </resources>

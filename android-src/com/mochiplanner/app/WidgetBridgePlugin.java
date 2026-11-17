@@ -46,7 +46,7 @@ public class WidgetBridgePlugin extends Plugin {
         if (Build.VERSION.SDK_INT >= 26) {
             AppWidgetManager m = AppWidgetManager.getInstance(getContext());
             if (m.isRequestPinAppWidgetSupported()) {
-                Class<?> c = "assignments".equals(kind) ? AssignmentsWidget.class : TodayWidget.class;
+                Class<?> c = WidgetData.providerFor(kind);
                 ok = m.requestPinAppWidget(new ComponentName(getContext(), c), null, null);
             }
         }
@@ -60,6 +60,8 @@ public class WidgetBridgePlugin extends Plugin {
         JSObject r = new JSObject();
         r.put("today", m.getAppWidgetIds(new ComponentName(getContext(), TodayWidget.class)).length);
         r.put("assignments", m.getAppWidgetIds(new ComponentName(getContext(), AssignmentsWidget.class)).length);
+        r.put("todos", m.getAppWidgetIds(new ComponentName(getContext(), TodosWidget.class)).length);
+        r.put("exams", m.getAppWidgetIds(new ComponentName(getContext(), ExamsWidget.class)).length);
         call.resolve(r);
     }
 }

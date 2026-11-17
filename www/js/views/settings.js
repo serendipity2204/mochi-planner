@@ -216,13 +216,14 @@ const BUILDERS = {
       <div class="card"><div class="card-title">👫 ${t('priv.sharingTitle')}</div><p class="small muted prose" style="margin:0">${t('priv.sharingBody')}</p></div>`;
   },
   widgets() {
-    const card = (kind) => `<div class="card" style="margin-bottom:14px"><div class="card-title"><span class="grow">${t(kind === 'today' ? 'widget.today' : 'widget.asg')}</span></div>
-      <p class="small muted" style="margin:0 0 12px">${t(kind === 'today' ? 'widget.todayDesc' : 'widget.asgDesc')}</p>
+    const K = { today: ['widget.today', 'widget.todayDesc'], assignments: ['widget.asg', 'widget.asgDesc'], todos: ['widget.todo', 'widget.todoDesc'], exams: ['widget.exam', 'widget.examDesc'] };
+    const card = (kind) => `<div class="card" style="margin-bottom:14px"><div class="card-title"><span class="grow">${t(K[kind][0])}</span></div>
+      <p class="small muted" style="margin:0 0 12px">${t(K[kind][1])}</p>
       ${previewHTML(kind)}
       <button class="btn primary block" style="margin-top:14px" data-act="widget.pin" data-kind="${kind}">📌 ${t('widget.add')}</button></div>`;
     return `<p class="small muted" style="margin:0 6px 12px;line-height:1.5">${t('widget.intro')}</p>
       ${isNative() ? '' : `<div class="card" style="margin-bottom:14px;border-color:var(--yellow)">⚠️ ${t('widget.nativeOnly')}</div>`}
-      ${card('today')}${card('assignments')}
+      <div class="grid-2">${card('today')}${card('assignments')}${card('todos')}${card('exams')}</div>
       <details class="faq"><summary>${t('widget.manualTitle')}</summary><p>${t('widget.manual')}</p></details>`;
   },
   friends() {

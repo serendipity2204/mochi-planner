@@ -1,8 +1,9 @@
 // Home-screen widgets: push a data snapshot to the native widgets and render in-app previews.
 import { store } from './store.js';
-import { t, lang, fmtTime, weekdayShort } from './i18n.js';
+import { t, lang, fmtTime, fmtDate, weekdayShort } from './i18n.js';
 import { esc, dkey, addDays, startOfDay, debounce } from './utils.js';
-import { classesOn, pendingAssignments, dueAt, assignmentProgress, assignmentStatus, courseColor } from './data.js';
+import { classesOn, pendingAssignments, dueAt, assignmentProgress, assignmentStatus, courseColor, sortedTodos, upcomingExams, examAt } from './data.js';
+import { parseDate } from './utils.js';
 import { plug, isNative } from './native.js';
 import { pigSVG } from './pig.js';
 
@@ -16,15 +17,23 @@ export function widgetData() {
   const assignments = pendingAssignments().filter((a) => a.dueDate).slice(0, 12).map((a) => ({
     t: a.title, c: a.course || '', due: dueAt(a).getTime(), p: Math.round(assignmentProgress(a) * 100), st: assignmentStatus(a),
   }));
+  const todos = sortedTodos().filter((x) => !x.done).slice(0, 12).map((x) => ({
+    t: x.title, pr: x.priority, pl: t('pri.' + x.priority) + (x.due ? ' · ' + fmtDate(x.due, { short: true }) : ''), day: x.due ? parseDate(x.due).getTime() : 0,
+  }));
+  const exams = upcomingExams().slice(0, 12).map((e) => ({
+    t: e.course, at: examAt(e).getTime(), day: parseDate(e.date).getTime(),
+    w: `${fmtDate(e.date, { short: true })} ${fmtTime(e.time || '09:00')}${e.location ? ' · ' + e.location : ''}`,
+  }));
   return {
     v: 1, updated: Date.now(), lang: lang(), timeFmt: store.state.settings.cal.timeFmt,
     wd: [0, 1, 2, 3, 4, 5, 6].map(weekdayShort), mon: [...Array(12).keys()].map((m) => t('mon.' + m).slice(0, 3)),
     labels: {
       today: t('widget.today'), asg: t('widget.asg'), noClass: t('widget.noClass'), noAsg: t('widget.noAsg'),
       overdue: t('asg.overdue'), hoursLeft: t('widget.hoursLeft'), daysLeft: t('widget.daysLeft'), more: t('widget.more'),
-      allDone: t('widget.allDone'), openApp: t('widget.openApp'),
+      allDone: t('widget.allDone'), openApp: t('widget.openApp'), todo: t('widget.todo'), exam: t('widget.exam'),
+      noTodo: t('widget.noTodo'), noExam: t('widget.noExam'), todayShort: t('rel.today'), tomorrow: t('rel.tomorrow'), examDays: t('widget.examDays'),
     },
-    classes, assignments,
+    classes, assignments, todos, exams,
   };
 }
 
@@ -53,7 +62,8 @@ export async function widgetCount() {
 export function previewHTML(kind) {
   const d = widgetData();
   const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
-  const head = `<div class="wpv-head">${pigSVG({ size: 30, acc: 'bow', expr: 'happy' })}<b>${esc(kind === 'today' ? d.labels.today : d.labels.asg)}</b><span>${esc(lang() === 'zh' ? `${now.getMonth() + 1}月${now.getDate()}日 ${weekdayShort(now.getDay())}` : `${weekdayShort(now.getDay())} ${now.getDate()}`)}</span></div>`;
+  const title = { today: d.labels.today, assignments: d.labels.asg, todos: d.labels.todo, exams: d.labels.exam }[kind];
+  const head = `<div class="wpv-head">${pigSVG({ size: 30, acc: 'bow', expr: 'happy' })}<b>${esc(title)}</b><span>${esc(lang() === 'zh' ? `${now.getMonth() + 1}月${now.getDate()}日 ${weekdayShort(now.getDay())}` : `${weekdayShort(now.getDay())} ${now.getDate()}`)}</span></div>`;
   let rows = '';
   if (kind === 'today') {
     const list = d.classes[dkey(now)] || [];
@@ -62,6 +72,20 @@ export function previewHTML(kind) {
       const past = eh * 60 + em <= nm, live = sh * 60 + sm <= nm && !past;
       return `<div class="wpv-row ${past ? 'past' : ''}"><i style="background:${past ? '#E0D0D6' : c.col}"></i><div><b style="${live ? 'color:#EC6C9C' : ''}">${live ? '▶ ' : ''}${esc(c.n)}</b><small>${esc([c.c, c.l].filter(Boolean).join(' · '))}</small></div><em>${fmtTime(c.s)}<br>${fmtTime(c.e)}</em></div>`;
     }).join('') : `<div class="wpv-empty">${esc(d.labels.noClass)}</div>`;
+  } else if (kind === 'todos') {
+    const t0 = startOfDay(new Date()).getTime();
+    const rel = (day) => { const n = Math.round((day - t0) / 864e5); return n < 0 ? d.labels.overdue : n === 0 ? d.labels.todayShort : n === 1 ? d.labels.tomorrow : d.labels.daysLeft.replace('%d', n); };
+    rows = d.todos.length ? d.todos.slice(0, 5).map((x) => {
+      const col = { high: '#F26D6D', med: '#F2B33D', low: '#45BF86' }[x.pr];
+      const n = x.day ? Math.round((x.day - t0) / 864e5) : null;
+      return `<div class="wpv-row"><i style="background:${col}"></i><div><b>○ ${esc(x.t)}</b><small>${esc(x.pl)}</small></div><em style="color:${n !== null && n < 0 ? '#F26D6D' : n === 0 ? '#C88A10' : ''}">${x.day ? esc(rel(x.day)) : ''}</em></div>`;
+    }).join('') : `<div class="wpv-empty">${esc(d.labels.noTodo)}</div>`;
+  } else if (kind === 'exams') {
+    const t0 = startOfDay(new Date()).getTime();
+    rows = d.exams.length ? d.exams.slice(0, 5).map((e) => {
+      const n = Math.round((e.day - t0) / 864e5), col = n <= 3 ? '#F26D6D' : '#EC6C9C';
+      return `<div class="wpv-row"><i style="background:${col}"></i><div><b>${esc(e.t)}</b><small>${esc(e.w)}</small></div><em style="color:${col};font-weight:800">${esc(n <= 0 ? d.labels.todayShort : d.labels.examDays.replace('%d', n))}</em></div>`;
+    }).join('') : `<div class="wpv-empty">${esc(d.labels.noExam)}</div>`;
   } else {
     rows = d.assignments.length ? d.assignments.slice(0, 5).map((a) => {
       const ms = a.due - Date.now();
