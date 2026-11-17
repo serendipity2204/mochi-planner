@@ -15,6 +15,11 @@ A cute pink-pig study planner for students — timetable, calendar, assignments,
 
 > 每次把代码推送到 `main` 分支，GitHub Actions 会自动构建 APK 并发布到 Releases（约 5–8 分钟）。也可以在 **Actions → Build Android APK → Run workflow** 手动触发。
 
+## 🍎 iPhone / 网页版
+
+用 iPhone 的 Safari 打开 **https://serendipity2204.github.io/mochi-planner/** → 分享 → 添加到主屏幕。
+（网页版不支持桌面小部件和后台定时提醒；登录同一个云端账号即可与安卓同步。）
+
 ## 🚀 第一次上传到 GitHub
 
 **方法 A：命令行**

@@ -211,6 +211,25 @@ async function boot() {
     exitApp();
   });
   if (isNative()) document.documentElement.classList.add('native');
+  else registerWebApp();
+}
+
+// Web / iPhone version: offline support + "Add to Home Screen" hint for Safari
+function registerWebApp() {
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch((e) => console.warn('sw', e));
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone || window.matchMedia?.('(display-mode: standalone)').matches;
+  let shown = false;
+  try { shown = localStorage.getItem('mochi-ios-hint') === '1'; } catch {}
+  if (ios && !standalone && !shown) {
+    setTimeout(() => {
+      if (document.querySelector('.onboard') || sheetOpen()) return;
+      openSheet(`${sheetHead(t('ios.title'))}<div class="center">${pigSVG({ size: 110, mood: 'cheer', acc: store.state.settings.pig.acc, cls: 'pig-anim' }).replace('<svg', '<svg style="margin:0 auto"')}</div>
+        <ol class="prose" style="padding-left:20px"><li>${t('ios.step1')}</li><li>${t('ios.step2')}</li><li>${t('ios.step3')}</li></ol>
+        <p class="small muted">${t('ios.note')}</p><button class="btn primary block" data-act="sheet.close">${t('common.ok')}</button>`);
+      try { localStorage.setItem('mochi-ios-hint', '1'); } catch {}
+    }, 1500);
+  }
 }
 
 window.__mochi = { store, timer }; // debugging / automated tests

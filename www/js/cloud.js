@@ -235,7 +235,13 @@ async function googleCredential() {
 export const signInGoogle = wrap(async () => {
   const { A, auth } = await loadSDK();
   if (isNative()) await A.signInWithCredential(auth, await googleCredential());
-  else await A.signInWithPopup(auth, new A.GoogleAuthProvider());
+  else {
+    try { await A.signInWithPopup(auth, new A.GoogleAuthProvider()); }
+    catch (e) {
+      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/operation-not-supported-in-this-environment') await A.signInWithRedirect(auth, new A.GoogleAuthProvider());
+      else throw e;
+    }
+  }
 });
 export const signInEmail = wrap(async (email, pw) => { const { A, auth } = await loadSDK(); await A.signInWithEmailAndPassword(auth, email, pw); });
 export const signUpEmail = wrap(async (email, pw, name) => {

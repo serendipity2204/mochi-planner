@@ -2,6 +2,8 @@
   "name": "糯糯学伴 Mochi Planner",
   "short_name": "Mochi",
   "start_url": "./index.html",
+  "scope": "./",
+  "lang": "zh-CN",
   "display": "standalone",
   "background_color": "#FFF8FA",
   "theme_color": "#EC6C9C",
