@@ -2,7 +2,8 @@
 // profiles/{uid}, inviteCodes/{code}, friendships/{a_b}, shared/{uid}, chats/{a_b}/messages/{id}
 import { store } from './store.js';
 import * as cloud from './cloud.js';
-import { notifyNow, playSound, vibrate } from './native.js';
+import { notifyNow, playSound, vibrate, plug } from './native.js';
+import { FIREBASE_CONFIG } from './firebase-config.js';
 import { t } from './i18n.js';
 import { debounce, dkey, toMin, parseDate } from './utils.js';
 import { courseColor, expandCourse } from './data.js';
@@ -17,20 +18,24 @@ export const state = {
 };
 const subs = new Set();
 export const onFriends = (fn) => { subs.add(fn); return () => subs.delete(fn); };
-const emit = debounce(() => subs.forEach((f) => { try { f(state); } catch (e) { console.error(e); } }), 60);
+const emit = debounce(() => { subs.forEach((f) => { try { f(state); } catch (e) { console.error(e); } }); syncNativeMessages(); }, 60);
 let pokeHandler = () => {};
 export const setPokeHandler = (fn) => { pokeHandler = fn; };
 
 let unsubs = [];
 const friendUnsubs = new Map();
-const notified = new Map(); // chat id -> last notified timestamp
+// chat id -> last notified timestamp (persisted so messages that arrived while the app was closed alert once)
+const notified = new Map((() => { try { return Object.entries(JSON.parse(localStorage.getItem('mochi-notified') || '{}')); } catch { return []; } })());
+const saveNotified = () => { try { localStorage.setItem('mochi-notified', JSON.stringify(Object.fromEntries(notified))); } catch {} };
+let bannerHandler = null;
+export const setBannerHandler = (fn) => { bannerHandler = fn; };
 
 export function initFriends() {
   cloud.onCloud((st) => {
     if (st.user && st.state !== 'loading' && state.me !== st.user.uid && FS()) start(st.user).catch((e) => console.warn('friends', e));
     else if (!st.user && state.me) stop();
   });
-  store.onChange((reason) => { if (state.me && !['cloud-meta', 'timer'].includes(reason)) publish(); });
+  store.onChange((reason) => { if (state.me && !['cloud-meta', 'timer'].includes(reason)) publish(); if (reason === 'settings' || reason === 'lang') syncNativeMessages(); });
 }
 
 function stop() {
@@ -71,23 +76,46 @@ async function start(user) {
       if (!last || last.from === state.me) return;
       const read = c.read?.[state.me] || 0;
       const seen = Math.max(read, notified.get(d.id) || 0);
-      if (last.at > seen && prev !== undefined || (prev === undefined && last.at > read && Date.now() - last.at < 60000)) {
-        notified.set(d.id, last.at);
+      if (last.at > seen) {
+        notified.set(d.id, last.at); saveNotified(); nativeSeen(d.id, last.at);
         const other = c.users.find((u) => u !== state.me);
-        if (last.type === 'poke') { pokeHandler(other, last); alertUser(t('friends.pokeTitle', { name: nameOf(other) }), t('friends.pokeBody'), true); }
-        else if (state.openChat !== other) alertUser(nameOf(other), last.text || t('chat.newMessage'));
+        const fresh = Date.now() - last.at < 120000;
+        if (last.type === 'poke' && fresh) { pokeHandler(other, last); alertUser(t('friends.pokeTitle', { name: nameOf(other) }), t('friends.pokeBody'), true, other); }
+        else if (state.openChat !== other) alertUser(nameOf(other), last.type === 'poke' ? t('friends.pokeBody') : last.text || t('chat.newMessage'), false, other, !fresh);
       }
     });
     emit();
   }, (e) => console.warn('chats', e)));
 }
 
-function alertUser(title, body, strong = false) {
+function alertUser(title, body, strong = false, uid = null, quiet = false) {
   if (!settings().notify) return;
   const s = store.state.settings.sound;
-  if (s.app) playSound(strong ? 'bell' : 'bubble', 0.3);
-  if (s.vibrate) vibrate(strong ? 500 : 80);
+  if (!quiet && s.app) playSound(strong ? 'bell' : 'bubble', 0.3);
+  if (!quiet && s.vibrate) vibrate(strong ? 500 : 80);
   if (document.visibilityState !== 'visible') notifyNow(title, body, store.state.settings.notif.sound);
+  else if (!strong) bannerHandler?.({ uid, title, body });
+}
+
+// ---------- Android background message check (runs ~every 15 min while the app is closed) ----------
+function nativeSeen(chat, at) { try { plug('MochiWidgets')?.msgSeen({ chat, at }); } catch {} }
+export const syncNativeMessages = debounce(async () => {
+  const W = plug('MochiWidgets');
+  if (!W?.configureMessages) return;
+  try {
+    const user = cloud.getFB()?.auth?.currentUser;
+    const on = !!(state.me && user && settings().notify);
+    const names = Object.fromEntries(state.friends.map((f) => [f.other, nameOf(f.other)]));
+    await W.configureMessages({
+      enabled: on, uid: on ? state.me : '', refreshToken: on ? user.refreshToken || '' : '',
+      apiKey: FIREBASE_CONFIG.apiKey, projectId: FIREBASE_CONFIG.projectId,
+      names: JSON.stringify(names), notified: JSON.stringify(Object.fromEntries(notified)),
+      labels: JSON.stringify({ newMsg: t('chat.newMessage'), poke: t('friends.pokeTitle', { name: '{name}' }), pokeBody: t('friends.pokeBody'), friend: t('greet.friend'), image: t('chat.prevImage'), voice: t('chat.prevVoice'), card: t('chat.prevCard'), channel: t('friends.notify') }),
+    });
+  } catch (e) { console.warn('native msgs', e); }
+}, 1500);
+export async function takeOpenChat() {
+  try { const r = await plug('MochiWidgets')?.takeOpenChat(); return r?.uid || null; } catch { return null; }
 }
 
 function watchFriend(uid, accepted) {
@@ -240,3 +268,4 @@ export function friendStatus(uid, now = new Date()) {
   return { state: list.length ? 'done' : 'noClass' };
 }
 export { parseDate };
+export const _startForTests = (u) => start(u);

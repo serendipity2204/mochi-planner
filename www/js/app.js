@@ -192,6 +192,9 @@ async function boot() {
   const refreshIfIdle = () => { if (!sheetOpen() && !document.activeElement?.matches('input,textarea,select')) render(false); };
   initFriends();
   setPokeHandler((other) => friendsView.showPoke(other));
+  fr.setBannerHandler((m) => showBanner(m));
+  const openFromNotif = async () => { const uid = await fr.takeOpenChat(); if (uid) { closeSheet(); go('chat', { uid }); } };
+  onResume(openFromNotif); setTimeout(openFromNotif, 1500);
   onFriends(() => { if (['friends', 'home', 'me', 'settings'].includes(route.name)) refreshIfIdle(); });
   try { const inv = new URLSearchParams(location.search).get('invite'); if (inv) { sessionStorage.setItem('mochi-invite', inv); history.replaceState(null, '', location.pathname); setTimeout(() => go('friends'), 800); } } catch {}
   cloud.initCloud();
@@ -247,3 +250,16 @@ function registerWebApp() {
 
 window.__mochi = { store, timer, fr, cloud, go }; // debugging / automated tests
 boot();
+
+// Small in-app banner for a new friend message (tap to open the chat)
+function showBanner({ uid, title, body }) {
+  document.querySelector('.msg-banner')?.remove();
+  const el = document.createElement('button');
+  el.className = 'msg-banner';
+  const av = fr.avatarOf(uid);
+  el.innerHTML = `<span class="avatar">${String(av).startsWith('data:') ? `<img src="${av}" alt="">` : esc(av)}</span><span class="grow" style="min-width:0;text-align:left"><b class="ellipsis" style="display:block">${esc(title)}</b><span class="small ellipsis" style="display:block">${esc(body)}</span></span>`;
+  el.addEventListener('click', () => { el.remove(); if (uid) { closeSheet(); go('chat', { uid }); } });
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('out'), 4200);
+  setTimeout(() => el.remove(), 4600);
+}

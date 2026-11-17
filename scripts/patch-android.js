@@ -105,6 +105,8 @@ if (!g.includes('mochiRepoKey')) {
         }
     }`);
 }
+// WorkManager for the background friend-message check
+if (!g.includes('androidx.work:work-runtime')) g = g.replace(/dependencies\s*\{/, 'dependencies {\n    implementation "androidx.work:work-runtime:2.9.1"');
 g = g.replace(/versionCode\s+\d+/, `versionCode ${build}`).replace(/versionName\s+"[^"]*"/, `versionName "${maj}.${min}.${build}"`);
 fs.writeFileSync(gradlePath, g);
 console.log(`✓ version ${maj}.${min}.${build} (code ${build})`);

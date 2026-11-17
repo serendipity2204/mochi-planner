@@ -3,7 +3,10 @@ package com.mochiplanner.app;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
+import org.json.JSONObject;
+import java.util.Iterator;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -63,5 +66,62 @@ public class WidgetBridgePlugin extends Plugin {
         r.put("todos", m.getAppWidgetIds(new ComponentName(getContext(), TodosWidget.class)).length);
         r.put("exams", m.getAppWidgetIds(new ComponentName(getContext(), ExamsWidget.class)).length);
         call.resolve(r);
+    }
+
+    /** Stores what the background message checker needs (or turns it off). */
+    @PluginMethod
+    public void configureMessages(PluginCall call) {
+        Context ctx = getContext();
+        SharedPreferences p = ctx.getSharedPreferences(MessageCheckWorker.PREFS, Context.MODE_PRIVATE);
+        boolean on = Boolean.TRUE.equals(call.getBoolean("enabled", false));
+        SharedPreferences.Editor e = p.edit().putBoolean("enabled", on);
+        if (on) {
+            String uid = call.getString("uid", "");
+            if (!uid.equals(p.getString("uid", ""))) e.putString("notified", "{}");
+            e.putString("uid", uid)
+             .putString("apiKey", call.getString("apiKey", ""))
+             .putString("projectId", call.getString("projectId", ""))
+             .putString("names", call.getString("names", "{}"))
+             .putString("labels", call.getString("labels", "{}"));
+            String rt = call.getString("refreshToken", "");
+            if (!rt.isEmpty()) e.putString("refreshToken", rt);
+            e.apply();
+            mergeNotified(p, call.getString("notified", "{}"));
+        } else {
+            e.remove("refreshToken").remove("uid").apply();
+        }
+        MessageCheckWorker.schedule(ctx, on);
+        call.resolve();
+    }
+
+    /** The app already alerted about this chat message, so the background checker should not repeat it. */
+    @PluginMethod
+    public void msgSeen(PluginCall call) {
+        SharedPreferences p = getContext().getSharedPreferences(MessageCheckWorker.PREFS, Context.MODE_PRIVATE);
+        try {
+            JSONObject o = new JSONObject();
+            o.put(call.getString("chat", ""), call.getDouble("at", 0d).longValue());
+            mergeNotified(p, o.toString());
+        } catch (Exception ignored) { }
+        call.resolve();
+    }
+
+    /** Returns (once) the friend uid whose notification opened the app. */
+    @PluginMethod
+    public void takeOpenChat(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("uid", MainActivity.pendingChat);
+        MainActivity.pendingChat = null;
+        call.resolve(r);
+    }
+
+    private static synchronized void mergeNotified(SharedPreferences p, String json) {
+        try {
+            JSONObject cur = new JSONObject(p.getString("notified", "{}"));
+            JSONObject add = new JSONObject(json);
+            Iterator<String> it = add.keys();
+            while (it.hasNext()) { String k = it.next(); long v = add.optLong(k, 0); if (v > cur.optLong(k, 0)) cur.put(k, v); }
+            p.edit().putString("notified", cur.toString()).apply();
+        } catch (Exception ignored) { }
     }
 }

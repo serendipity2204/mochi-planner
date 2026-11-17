@@ -400,3 +400,9 @@ mark { background: var(--primary-2); color: inherit; border-radius: 4px; padding
 .composer, .rec-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 10px 12px calc(10px + var(--safe-b)); background: var(--card); border-top: 1px solid var(--line); }
 .composer .input { min-height: 42px; border-radius: 99px; }
 @media (min-width: 860px) { .composer, .rec-bar { left: 220px; } }
+
+/* In-app message banner */
+.msg-banner { position: fixed; z-index: 95; left: 12px; right: 12px; top: calc(var(--safe-t, 0px) + 10px); max-width: 520px; margin: 0 auto; display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 20px; background: var(--card); color: var(--text); border: 2px solid var(--primary-soft, #f8c8d8); box-shadow: var(--shadow); animation: bannerIn .3s ease; transition: opacity .35s, transform .35s; }
+.msg-banner.out { opacity: 0; transform: translateY(-20px); }
+.msg-banner .avatar { width: 40px; height: 40px; font-size: 20px; flex: none; }
+@keyframes bannerIn { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: none; } }
