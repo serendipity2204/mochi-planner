@@ -273,9 +273,10 @@ on({
   'friends.accept': async (el) => { await fr.accept(el.dataset.id); toast(t('friends.nowFriends')); celebrate(); },
   'friends.decline': async (el) => { await fr.removeFriendship(el.dataset.id); },
   'friends.cancel': async (el) => { await fr.removeFriendship(el.dataset.id); },
-  'friends.timetable': (el) => timetableSheet(el.dataset.uid),
+  'friends.timetable': (el) => { closeSheet(); timetableSheet(el.dataset.uid); },
   'friends.poke': async (el) => {
     const other = el.dataset.uid;
+    if (el.closest('.sheet')) closeSheet();
     await fr.poke(other);
     const r = el.getBoundingClientRect(); celebrate(r.left + r.width / 2, r.top, 5, ['🔔', '💗', '⏰']);
     if (S().settings.sound.app) playSound('bell', 0.25);
