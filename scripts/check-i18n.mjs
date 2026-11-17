@@ -16,7 +16,7 @@ for (const f of files) {
 const dyn = {
   'nav.': ['home','schedule','tasks','focus','me','stats','notes','search'], 'cal.': ['day','week','month'], 'tasks.': ['asg','exam','todo'],
   'status.': ['red','yellow','green'], 'filter.': ['active','done','all','allCourses'], 'focus.': ['focus','short','long'],
-  'greet.': ['morning','afternoon','evening','night'], 'home.sec.': ['next','today','focus','assignments','exams','todos'],
+  'greet.': ['morning','afternoon','evening','night'], 'home.sec.': ['next','today','friends','focus','assignments','exams','todos'],
   'set.': ['language','account','notifications','appearance','calendar','widgets','backup','privacy','friends','sound','help','about'],
   'set.mode.': ['light','dark','system'], 'color.': ['pink','peach','lavender','mint','sky'], 'sound.': ['chime','bell','bubble','piano','none'],
   'notif.cat.': ['class','assignment','exam','review','pomodoro','todo'], 'note.cat.': ['lecture','handout','brief','personal','other'],
@@ -26,7 +26,7 @@ const dyn = {
   'voice.prompt.': ['course','assignment','exam','todo'], 'voice.example.': ['course','assignment','exam','todo'], 'doc.': ['privacy','terms'], 'about.': ['privacy','terms','licenses'],
   'acc.': ['none','bow','flower','glasses','scarf','headphones','partyhat','crown','gradcap'], 'expr.': ['happy','smile','wink','love','star','cool'],
   'cloud.state.': ['signedOut','loading','syncing','synced','error','offline'], 'cloud.': ['login','register'],
-  'err.': ['fbInvalidEmail','fbWrongLogin','fbEmailInUse','fbWeakPassword','fbTooMany','offline','fbRecentLogin','cancelled','fbPopupBlocked','fbCredInUse','fbAlreadyLinked','fbProviderOff','fbDomain','fbUserMismatch','fbRules','fbGoogleConfig','fbGeneric','fbTooLarge','fbNotSignedIn','speechUnavailable','micDenied','speechFailed','ocrLoad','offlineOCR','ocrFailed','invalidBackup','notFound','saveFailed','generic'],
+  'err.': ['friendBadCode','friendSelf','friendAlready','friendPending','fbInvalidEmail','fbWrongLogin','fbEmailInUse','fbWeakPassword','fbTooMany','offline','fbRecentLogin','cancelled','fbPopupBlocked','fbCredInUse','fbAlreadyLinked','fbProviderOff','fbDomain','fbUserMismatch','fbRules','fbGoogleConfig','fbGeneric','fbTooLarge','fbNotSignedIn','speechUnavailable','micDenied','speechFailed','ocrLoad','offlineOCR','ocrFailed','invalidBackup','notFound','saveFailed','generic'],
 };
 for (const [p, list] of Object.entries(dyn)) list.forEach((x) => used.add(p + x));
 for (const g of ['schedule','ocr','voice','asg','exam','focus','backup','lang']) { used.add(`guide.${g}.q`); used.add(`guide.${g}.a`); }

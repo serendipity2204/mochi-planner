@@ -11,6 +11,7 @@ const C = () => store.state.settings.cloud;
 let fb = null, loading = null, unsub = null;
 
 export const status = { state: 'signedOut', user: null, error: null };
+export const getFB = () => fb;
 const subs = new Set();
 export const onCloud = (fn) => { subs.add(fn); return () => subs.delete(fn); };
 const emit = () => subs.forEach((f) => { try { f(status); } catch (e) { console.error(e); } });

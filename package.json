@@ -1,6 +1,6 @@
 {
   "name": "mochi-planner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "糯糯学伴 Mochi Planner – cute pink-pig student planner (timetable, assignments, exams, pomodoro)",
   "scripts": {

@@ -4,6 +4,7 @@ import { t, applyLang, fmtDateTime, fmtDate, weekdayLong } from '../i18n.js';
 import { esc, fmtBytes, dkey, shrinkImage, blobToDataURL } from '../utils.js';
 import { on, go, back, rerender, openSheet, closeSheet, sheetHead, confirmDialog, promptDialog, toast, errMsg, formData, fieldError, select, toggle, pickFiles, loading, empty, closeAllSheets } from '../ui.js';
 import * as cloud from '../cloud.js';
+import * as fr from '../friends.js';
 import { notifPermission, notifyNow, playSound, SOUNDS, saveFile, isNative } from '../native.js';
 import { reschedule, buildReminders } from '../reminders.js';
 import { SECTION_IDS } from './home.js';
@@ -48,7 +49,7 @@ function summary(k) {
     case 'calendar': return `${t('set.weekStartsOn', { d: weekdayLong(s.cal.weekStart) })} · ${s.cal.timeFmt === '24' ? '24h' : '12h'}`;
     case 'backup': return cloud.status.user ? t('cloud.state.' + cloud.status.state) + (s.cloud.lastSync ? ' · ' + fmtDateTime(s.cloud.lastSync) : '') : s.backup.last ? t('set.lastBackup', { t: fmtDateTime(s.backup.last) }) : t('set.neverBackedUp');
     case 'privacy': return s.security.pin ? t('set.pinOn') : t('set.pinOff');
-    case 'friends': return t('set.comingV3');
+    case 'friends': return cloud.status.user ? t('friends.count', { n: fr.state.friends.length }) : t('cloud.notSignedIn');
     case 'widgets': return t('widget.summary');
     case 'sound': return `${s.sound.app ? '🔊' : '🔇'} ${s.sound.vibrate ? '📳' : ''}`;
     default: return '';
@@ -227,7 +228,21 @@ const BUILDERS = {
       <details class="faq"><summary>${t('widget.manualTitle')}</summary><p>${t('widget.manual')}</p></details>`;
   },
   friends() {
-    return `<div class="card center">${empty(t('friends.coming'))}<p class="small muted prose">${t('friends.body')}</p></div>`;
+    const f = set().friends;
+    if (!cloud.status.user) return `<div class="card center">${empty(t('friends.needLogin'))}<p class="small muted">${t('friends.needLoginBody')}</p><button class="btn primary" data-act="cloud.goAccount">☁️ ${t('cloud.signInToSync')}</button></div>`;
+    const courses = S().courses;
+    const sel = f.sharedCourses === 'all' ? courses.map((c) => c.id) : (f.sharedCourses || []);
+    return `${group('', [btnRow('👫', t('friends.title'), 'nav', t('friends.count', { n: fr.state.friends.length }), 'data-to="friends"')])}
+      ${group(t('friends.privacy'), [
+        row('📅', t('friends.shareTT'), sw('friends.shareTimetable', f.shareTimetable), t('friends.shareTTSub')),
+        row('🔔', t('friends.allowPoke'), sw('friends.allowReminders', f.allowReminders), t('friends.allowPokeSub')),
+        row('💬', t('friends.allowChat'), sw('friends.allowChat', f.allowChat), t('friends.allowChatSub')),
+        row('📷', t('friends.allowMedia'), sw('friends.allowMedia', f.allowMedia), t('friends.allowMediaSub')),
+        row('📣', t('friends.notify'), sw('friends.notify', f.notify), t('friends.notifySub')),
+      ])}
+      ${f.shareTimetable && courses.length ? `<div class="set-group-title">${t('friends.whichCourses')}</div><div class="set-group">${courses.map((c) => `<label class="set-row"><span class="dot" style="background:${esc(c.color || '#EC6C9C')}"></span><span class="label">${esc(c.name)}<small>${esc(c.code || '')}</small></span><input type="checkbox" class="share-course" data-id="${c.id}" ${sel.includes(c.id) ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary)"></label>`).join('')}</div>` : ''}
+      ${fr.state.friends.length ? `<div class="set-group-title">${t('friends.manage')}</div><div class="set-group">${fr.state.friends.map((x) => `<div class="set-row"><span class="label">${esc(fr.nameOf(x.other))}</span><button class="btn sm danger" data-act="friends.remove" data-id="${x.id}" data-uid="${x.other}">${t('friends.remove')}</button></div>`).join('')}</div>` : ''}
+      <p class="small muted" style="margin:0 6px">${t('friends.privacyNote')}</p>`;
   },
   sound() {
     const s = set().sound;
@@ -255,6 +270,11 @@ function getPath(path) { const [root, ...rest] = path.split('.'); let o = root =
 export function mount(root, params) {
   root.addEventListener('change', (e) => {
     const el = e.target;
+    if (el.classList.contains('share-course')) {
+      const ids = [...root.querySelectorAll('.share-course')].filter((x) => x.checked).map((x) => x.dataset.id);
+      set().friends.sharedCourses = ids.length === S().courses.length ? 'all' : ids;
+      commit('settings'); return;
+    }
     if (el.dataset.actChange === 'home.toggle') {
       const h = set().home, s = el.dataset.s;
       h.hidden = el.checked ? h.hidden.filter((x) => x !== s) : [...new Set([...h.hidden, s])];

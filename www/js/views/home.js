@@ -7,6 +7,9 @@ import { pigSVG } from '../pig.js';
 import { pigProps, pigMood, nextClass, classesOn, courseColor, pendingAssignments, urgency, assignmentStatus, assignmentProgress, upcomingExams, examDaysLeft, focusOn, streak, sortedTodos } from '../data.js';
 import { encouragement, pigName } from './focus.js';
 import { avatarHTML } from './me.js';
+import * as fr from '../friends.js';
+import { status as cloudStatus } from '../cloud.js';
+import { statusLine } from './friends.js';
 import { reschedule } from '../reminders.js';
 
 const S = () => store.state;
@@ -28,6 +31,13 @@ function moodMessage() {
 }
 
 const SECTIONS = {
+  friends() {
+    if (!cloudStatus.user || !fr.state.ready) return '';
+    const list = fr.state.friends.slice(0, 4);
+    return `<div class="card"><div class="card-title"><span class="grow">👫 ${t('friends.title')}${fr.state.requests.length ? ` <span class="badge red">${fr.state.requests.length}</span>` : ''}</span><button class="link" data-act="nav" data-to="friends">${t('common.viewAll')}</button></div>
+      ${list.length ? `<div class="list">${list.map((f) => `<div class="item"><button class="row grow" style="text-align:left;min-width:0" data-act="chat.open" data-uid="${f.other}"><div class="avatar" style="width:38px;height:38px;font-size:19px">${String(fr.avatarOf(f.other)).startsWith('data:') ? `<img src="${fr.avatarOf(f.other)}" alt="">` : esc(fr.avatarOf(f.other))}</div><div class="grow" style="min-width:0"><div class="title ellipsis">${esc(fr.nameOf(f.other))} ${fr.unreadOf(f.other) ? '<span class="badge red">●</span>' : ''}</div><div class="sub ellipsis">${statusLine(f.other)}</div></div></button>${fr.state.shared[f.other]?.allowReminders !== false ? `<button class="icon-btn" data-act="friends.poke" data-uid="${f.other}">🔔</button>` : ''}</div>`).join('')}</div>`
+        : `<div class="empty">${t('friends.homeEmpty')}</div><button class="btn sm block" data-act="nav" data-to="friends">➕ ${t('friends.add')}</button>`}</div>`;
+  },
   next() {
     const n = nextClass();
     if (!n) return `<div class="card next-card"><div class="muted small bold">${t('home.nextClass')}</div><div class="bold" style="font-size:1.15rem;margin-top:4px">${S().courses.length ? t('home.noMoreClasses') : t('home.noCourses')}</div>

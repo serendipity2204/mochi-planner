@@ -1,6 +1,6 @@
 // App metadata. CI replaces __BUILD__ with the GitHub Actions run number.
 export const APP = {
-  version: '0.2.0',
+  version: '0.3.0',
   build: '__BUILD__',
   developer: 'Mochi Planner Team',
   // Set these after you create your GitHub repository / support mailbox:

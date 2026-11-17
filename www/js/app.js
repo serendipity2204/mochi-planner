@@ -19,11 +19,16 @@ import * as me from './views/me.js';
 import * as stats from './views/stats.js';
 import * as notes from './views/notes.js';
 import * as settings from './views/settings.js';
+import * as friendsView from './views/friends.js';
+import * as fr from './friends.js';
+const { initFriends, setPokeHandler, onFriends } = fr;
 
 const ROUTES = {
   home, schedule, tasks, focus, me, stats, settings,
   notes: { render: notes.renderNotes, mount: notes.mountNotes },
   search: { render: notes.renderSearch, mount: notes.mountSearch },
+  friends: { render: friendsView.renderFriends, mount: friendsView.mountFriends },
+  chat: { render: friendsView.renderChat, mount: friendsView.mountChat, unmount: friendsView.unmountChat, tick: friendsView.tickChat },
   help: { render: me.renderHelp },
   about: { render: me.renderAbout },
 };
@@ -35,14 +40,18 @@ const stack = [];
 let main, nav;
 
 function renderNav() {
-  const active = TABS.some(([n]) => n === route.name) ? route.name : ({ stats: 'me', notes: 'me', settings: 'me', help: 'me', about: 'me', search: 'home' }[route.name] || 'home');
+  const active = TABS.some(([n]) => n === route.name) ? route.name : ({ stats: 'me', notes: 'me', settings: 'me', help: 'me', about: 'me', friends: 'me', chat: 'me', search: 'home' }[route.name] || 'home');
   nav.innerHTML = `<div class="nav-brand">${pigSVG({ size: 34, acc: store.state.settings.pig.acc, expr: 'happy' })}${esc(t('app.name'))}</div>` + TABS.map(([n, ic, sideOnly]) => n === 'plus'
     ? `<button class="nav-plus" data-act="quick" data-label="${esc(t('quick.title'))}" aria-label="${esc(t('quick.title'))}">＋</button>`
     : `<button class="nav-item ${sideOnly ? 'side-only' : ''} ${active === n ? 'active' : ''}" data-act="tab" data-to="${n}"><span class="ni">${ic}</span><span>${t('nav.' + n)}</span></button>`).join('');
 }
 
+let mountedView = null;
 function render(scrollTop = false) {
   const view = ROUTES[route.name] || home;
+  if (mountedView && mountedView !== view) mountedView.unmount?.();
+  mountedView = view;
+  if (route.name === 'chat' && !scrollTop && document.getElementById('msgs')) return; // chat updates itself
   const y = window.scrollY;
   try {
     main.innerHTML = view.render(route.params || {});
@@ -180,12 +189,16 @@ async function boot() {
     { center: true, cls: 'dialog', sticky: true, onClose: () => resolve(choice) });
     el.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { choice = b.dataset.c; closeSheet(); }));
   }));
+  const refreshIfIdle = () => { if (!sheetOpen() && !document.activeElement?.matches('input,textarea,select')) render(false); };
+  initFriends();
+  setPokeHandler((other) => friendsView.showPoke(other));
+  onFriends(() => { if (['friends', 'home', 'me', 'settings'].includes(route.name)) refreshIfIdle(); });
+  try { const inv = new URLSearchParams(location.search).get('invite'); if (inv) { sessionStorage.setItem('mochi-invite', inv); history.replaceState(null, '', location.pathname); setTimeout(() => go('friends'), 800); } } catch {}
   cloud.initCloud();
   store.onChange(() => pushWidgets());
   pushWidgets();
-  const refreshIfIdle = () => { if (!sheetOpen() && !document.activeElement?.matches('input,textarea,select')) render(false); };
   store.onChange((reason) => { if (['remote', 'restore', 'import'].includes(reason)) { applyLang(); settings.applyAppearance(); reschedule(); refreshIfIdle(); } });
-  cloud.onCloud(() => { if (['settings', 'me'].includes(route.name)) refreshIfIdle(); });
+  cloud.onCloud(() => { if (['settings', 'me', 'friends'].includes(route.name)) refreshIfIdle(); });
 
   setInterval(() => {
     timer.check();
@@ -232,5 +245,5 @@ function registerWebApp() {
   }
 }
 
-window.__mochi = { store, timer }; // debugging / automated tests
+window.__mochi = { store, timer, fr, cloud, go }; // debugging / automated tests
 boot();

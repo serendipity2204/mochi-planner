@@ -9,6 +9,7 @@ import { APP } from '../config.js';
 import { openExternal, isNative } from '../native.js';
 import { pigName } from './focus.js';
 import { status as cloudStatus } from '../cloud.js';
+import { unreadCount } from '../friends.js';
 
 const S = () => store.state;
 
@@ -20,7 +21,7 @@ export const avatarHTML = (size = 64) => {
 export function render() {
   const p = S().profile;
   const tiles = [
-    ['📊', 'nav.stats', 'stats'], ['🗒️', 'nav.notes', 'notes'], ['👗', 'pig.wardrobe', 'wardrobe'], ['🔍', 'nav.search', 'search'],
+    ['👫', 'friends.title', 'friends'], ['📊', 'nav.stats', 'stats'], ['🗒️', 'nav.notes', 'notes'], ['👗', 'pig.wardrobe', 'wardrobe'], ['🔍', 'nav.search', 'search'],
     ['✅', 'tasks.todo', 'todo'], ['🧩', 'set.widgets', 'settings:widgets'], ['☁️', 'set.backup', 'settings:backup'], ['⚙️', 'common.settings', 'settings'], ['💡', 'set.help', 'help'], ['ℹ️', 'set.about', 'about'],
   ];
   return `<div class="page">
@@ -33,7 +34,7 @@ export function render() {
         <div class="stat"><b>${Math.round(totalFocus() / 60 * 10) / 10}h</b><span>${t('focus.total')}</span></div>
         <div class="stat"><b>🪙${S().rewards.coins || 0}</b><span>${t('focus.coins')}</span></div></div></div>
       <div class="small muted center" style="margin-top:8px">${t('me.pigLine', { name: esc(pigName()), n: S().assignments.filter(isComplete).length })}</div></div>
-    <div class="tiles" style="margin-top:14px">${tiles.map(([ic, k, to]) => `<button class="tile" data-act="me.go" data-to="${to}"><span class="ti">${ic}</span><span>${t(k)}</span></button>`).join('')}</div>
+    <div class="tiles" style="margin-top:14px">${tiles.map(([ic, k, to]) => `<button class="tile" data-act="me.go" data-to="${to}"><span class="ti">${ic}</span><span class="grow">${t(k)}</span>${to === 'friends' && unreadCount() ? `<span class="badge red">${unreadCount()}</span>` : ''}</button>`).join('')}</div>
     <div class="card" style="margin-top:14px"><div class="card-title">🚀 ${t('me.comingTitle')}</div><div class="small muted prose">${t('me.comingBody')}</div></div>
   </div>`;
 }

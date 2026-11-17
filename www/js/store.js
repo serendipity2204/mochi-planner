@@ -37,7 +37,7 @@ export function defaultSettings() {
     lang: zh ? 'zh' : 'en',
     onboarded: false,
     appearance: { mode: 'system', color: 'pink', fontScale: 1 },
-    home: { sections: ['next', 'today', 'focus', 'assignments', 'exams', 'todos'], hidden: [] },
+    home: { sections: ['next', 'today', 'friends', 'focus', 'assignments', 'exams', 'todos'], hidden: [] },
     pig: { acc: 'bow', expr: 'happy', name: '' },
     notif: {
       enabled: true, class: true, assignment: true, exam: true, review: true, pomodoro: true, todo: true,
@@ -49,6 +49,7 @@ export function defaultSettings() {
     focus: { focus: 25, short: 5, long: 15, longEvery: 4, dailyGoal: 120, autoNext: false },
     backup: { auto: true, last: null, lastExport: null },
     security: { pin: null, lockOnResume: true },
+    friends: { shareTimetable: true, sharedCourses: 'all', allowReminders: true, allowChat: true, allowMedia: true, notify: true },
     cloud: { autoSync: true, deviceId: '', uid: null, email: null, lastSync: null, lastRemote: 0, localChange: 0 },
   };
 }

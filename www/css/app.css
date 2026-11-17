@@ -379,3 +379,24 @@ mark { background: var(--primary-2); color: inherit; border-radius: 4px; padding
 .wpv-row.past b, .wpv-row.past em { color: #A08890; }
 .wpv-empty { text-align: center; color: #9B8790; font-size: .82rem; padding: 18px 0 10px; }
 .grid-2 > .card { margin: 0 !important; }
+
+/* Chat */
+.in-chat .nav { display: none; }
+.in-chat .main { padding-bottom: calc(84px + var(--safe-b)); }
+@media (min-width: 860px) { .in-chat .nav { display: grid; } }
+.chat-top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: calc(var(--safe-t) + 4px) 0 8px; margin: calc(-1 * var(--safe-t) - 8px) 0 0; }
+.msgs { display: flex; flex-direction: column; gap: 4px; padding: 6px 0 10px; }
+.msg { display: flex; flex-direction: column; align-items: flex-start; max-width: 82%; }
+.msg.mine { align-self: flex-end; align-items: flex-end; }
+.bubble-msg { background: var(--card); border: 1px solid var(--line); border-radius: 18px 18px 18px 6px; padding: 9px 13px; line-height: 1.45; word-break: break-word; box-shadow: var(--shadow-sm); }
+.msg.mine .bubble-msg { background: var(--primary); color: #fff; border-color: var(--primary); border-radius: 18px 18px 6px 18px; }
+.msg.image .bubble-msg, .msg.voice .bubble-msg { padding: 5px; }
+.msg.mine.voice .bubble-msg, .msg.mine.card .bubble-msg, .msg.mine.poke .bubble-msg { background: var(--primary-3); color: var(--text); border-color: var(--primary-2); }
+.msg-img { max-width: 220px; max-height: 280px; border-radius: 14px; display: block; cursor: pointer; }
+.msg-card { min-width: 180px; }
+.msg-time { font-size: .65rem; color: var(--muted); margin: 2px 6px 4px; display: flex; gap: 6px; align-items: center; }
+.msg-del { color: var(--muted); font-size: .7rem; opacity: .6; }
+.day-sep { align-self: center; font-size: .7rem; color: var(--muted); background: var(--card-2); padding: 3px 10px; border-radius: 99px; margin: 10px 0 4px; font-weight: 700; }
+.composer, .rec-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 10px 12px calc(10px + var(--safe-b)); background: var(--card); border-top: 1px solid var(--line); }
+.composer .input { min-height: 42px; border-radius: 99px; }
+@media (min-width: 860px) { .composer, .rec-bar { left: 220px; } }
