@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">糯糯 · 今日课程</string>
+    <string name="widget_today_desc">今天的课程表，自动更新</string>
+    <string name="widget_asg_name">糯糯 · 待完成作业</string>
+    <string name="widget_asg_desc">待完成的作业和截止倒计时</string>
+</resources>

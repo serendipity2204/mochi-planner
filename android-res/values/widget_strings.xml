@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Mochi · Today\'s classes</string>
+    <string name="widget_today_desc">Today\'s timetable, updates automatically</string>
+    <string name="widget_asg_name">Mochi · Assignments</string>
+    <string name="widget_asg_desc">Pending assignments with due countdown</string>
+</resources>

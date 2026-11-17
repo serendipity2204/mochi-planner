@@ -17,7 +17,7 @@ const dyn = {
   'nav.': ['home','schedule','tasks','focus','me','stats','notes','search'], 'cal.': ['day','week','month'], 'tasks.': ['asg','exam','todo'],
   'status.': ['red','yellow','green'], 'filter.': ['active','done','all','allCourses'], 'focus.': ['focus','short','long'],
   'greet.': ['morning','afternoon','evening','night'], 'home.sec.': ['next','today','focus','assignments','exams','todos'],
-  'set.': ['language','account','notifications','appearance','calendar','backup','privacy','friends','sound','help','about'],
+  'set.': ['language','account','notifications','appearance','calendar','widgets','backup','privacy','friends','sound','help','about'],
   'set.mode.': ['light','dark','system'], 'color.': ['pink','peach','lavender','mint','sky'], 'sound.': ['chime','bell','bubble','piano','none'],
   'notif.cat.': ['class','assignment','exam','review','pomodoro','todo'], 'note.cat.': ['lecture','handout','brief','personal','other'],
   'help.area.': ['schedule','tasks','focus','notes','settings','other'], 'backup.kind.': ['auto','manual','before-import'],

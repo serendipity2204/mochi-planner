@@ -364,3 +364,17 @@ details.faq p { margin: 8px 0 2px; color: var(--muted); line-height: 1.5; font-s
 .prose h3 { margin: 14px 0 6px; font-size: 1rem; }
 mark { background: var(--primary-2); color: inherit; border-radius: 4px; padding: 0 2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* Home-screen widget previews (mirror the native Android layout) */
+.wpv { background: #FFF5F8; border: 1px solid #F4DEE7; border-radius: 22px; padding: 12px; color: #4A3540; box-shadow: var(--shadow); max-width: 380px; margin: 0 auto; }
+.wpv-head { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.wpv-head b { flex: 1; font-size: .95rem; }
+.wpv-head span { color: #EC6C9C; font-size: .75rem; font-weight: 800; }
+.wpv-row { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 12px; padding: 6px; margin-top: 6px; }
+.wpv-row i { width: 4px; height: 30px; border-radius: 2px; flex: none; }
+.wpv-row div { flex: 1; min-width: 0; }
+.wpv-row b { display: block; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpv-row small { display: block; font-size: .7rem; color: #9B8790; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpv-row em { font-style: normal; font-size: .7rem; text-align: right; flex: none; }
+.wpv-row.past b, .wpv-row.past em { color: #A08890; }
+.wpv-empty { text-align: center; color: #9B8790; font-size: .82rem; padding: 18px 0 10px; }

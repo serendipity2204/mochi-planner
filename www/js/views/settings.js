@@ -9,13 +9,14 @@ import { reschedule, buildReminders } from '../reminders.js';
 import { SECTION_IDS } from './home.js';
 import { setupPin, verifyPinCancellable } from '../lock.js';
 import { avatarHTML } from './me.js';
+import { previewHTML, pinWidget, pushWidgets } from '../widgets.js';
 
 const S = () => store.state;
 const set = () => S().settings;
 
 const SECTIONS = [
   ['language', '🌐'], ['account', '👤'], ['notifications', '🔔'], ['appearance', '🎨'], ['calendar', '📅'],
-  ['backup', '☁️'], ['privacy', '🔒'], ['friends', '👫'], ['sound', '🔊'], ['help', '💡'], ['about', 'ℹ️'],
+  ['widgets', '🧩'], ['backup', '☁️'], ['privacy', '🔒'], ['friends', '👫'], ['sound', '🔊'], ['help', '💡'], ['about', 'ℹ️'],
 ];
 
 // ---------- small builders ----------
@@ -48,6 +49,7 @@ function summary(k) {
     case 'backup': return cloud.status.user ? t('cloud.state.' + cloud.status.state) + (s.cloud.lastSync ? ' · ' + fmtDateTime(s.cloud.lastSync) : '') : s.backup.last ? t('set.lastBackup', { t: fmtDateTime(s.backup.last) }) : t('set.neverBackedUp');
     case 'privacy': return s.security.pin ? t('set.pinOn') : t('set.pinOff');
     case 'friends': return t('set.comingV3');
+    case 'widgets': return t('widget.summary');
     case 'sound': return `${s.sound.app ? '🔊' : '🔇'} ${s.sound.vibrate ? '📳' : ''}`;
     default: return '';
   }
@@ -213,6 +215,16 @@ const BUILDERS = {
       ${group(t('priv.data'), [row('📱', t('priv.where'), '', t('priv.whereSub')), row('👀', t('priv.visibility'), `<span class="val">${t('priv.onlyYou')}</span>`, t('priv.visibilitySub'))])}
       <div class="card"><div class="card-title">👫 ${t('priv.sharingTitle')}</div><p class="small muted prose" style="margin:0">${t('priv.sharingBody')}</p></div>`;
   },
+  widgets() {
+    const card = (kind) => `<div class="card" style="margin-bottom:14px"><div class="card-title"><span class="grow">${t(kind === 'today' ? 'widget.today' : 'widget.asg')}</span></div>
+      <p class="small muted" style="margin:0 0 12px">${t(kind === 'today' ? 'widget.todayDesc' : 'widget.asgDesc')}</p>
+      ${previewHTML(kind)}
+      <button class="btn primary block" style="margin-top:14px" data-act="widget.pin" data-kind="${kind}">📌 ${t('widget.add')}</button></div>`;
+    return `<p class="small muted" style="margin:0 6px 12px;line-height:1.5">${t('widget.intro')}</p>
+      ${isNative() ? '' : `<div class="card" style="margin-bottom:14px;border-color:var(--yellow)">⚠️ ${t('widget.nativeOnly')}</div>`}
+      ${card('today')}${card('assignments')}
+      <details class="faq"><summary>${t('widget.manualTitle')}</summary><p>${t('widget.manual')}</p></details>`;
+  },
   friends() {
     return `<div class="card center">${empty(t('friends.coming'))}<p class="small muted prose">${t('friends.body')}</p></div>`;
   },
@@ -373,6 +385,13 @@ on({
     const refs = fileRefs(); const files = await listFiles();
     for (const f of files) if (!refs.has(f.id)) await delFile(f.id);
     closeSheet(); toast(t('common.deleted')); filesSheet();
+  },
+  'widget.pin': async (el) => {
+    pushWidgets();
+    const r = await pinWidget(el.dataset.kind);
+    if (r === 'requested') toast(t('widget.requested'));
+    else if (r === 'manual') toast(t('widget.useLauncher'));
+    else toast(t('widget.nativeOnly'), 'err');
   },
   'cloud.mode': (el) => { authMode = el.dataset.m; rerender(); },
   'cloud.google': async (el) => {

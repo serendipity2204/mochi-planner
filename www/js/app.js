@@ -9,6 +9,7 @@ import { reschedule } from './reminders.js';
 import * as timer from './timer.js';
 import { lockIfNeeded } from './lock.js';
 import * as cloud from './cloud.js';
+import { pushWidgets } from './widgets.js';
 
 import * as home from './views/home.js';
 import * as schedule from './views/schedule.js';
@@ -180,6 +181,8 @@ async function boot() {
     el.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { choice = b.dataset.c; closeSheet(); }));
   }));
   cloud.initCloud();
+  store.onChange(() => pushWidgets());
+  pushWidgets();
   const refreshIfIdle = () => { if (!sheetOpen() && !document.activeElement?.matches('input,textarea,select')) render(false); };
   store.onChange((reason) => { if (['remote', 'restore', 'import'].includes(reason)) { applyLang(); settings.applyAppearance(); reschedule(); refreshIfIdle(); } });
   cloud.onCloud(() => { if (['settings', 'me'].includes(route.name)) refreshIfIdle(); });
@@ -193,6 +196,7 @@ async function boot() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') hiddenAt = Date.now(); });
   onResume(() => {
     timer.check();
+    pushWidgets();
     reschedule();
     const s = store.state.settings.security;
     if (s.pin && s.lockOnResume && hiddenAt && Date.now() - hiddenAt > 60000) lockIfNeeded();

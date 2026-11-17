@@ -21,7 +21,7 @@ export function render() {
   const p = S().profile;
   const tiles = [
     ['📊', 'nav.stats', 'stats'], ['🗒️', 'nav.notes', 'notes'], ['👗', 'pig.wardrobe', 'wardrobe'], ['🔍', 'nav.search', 'search'],
-    ['✅', 'tasks.todo', 'todo'], ['☁️', 'set.backup', 'settings:backup'], ['⚙️', 'common.settings', 'settings'], ['💡', 'set.help', 'help'], ['ℹ️', 'set.about', 'about'],
+    ['✅', 'tasks.todo', 'todo'], ['🧩', 'set.widgets', 'settings:widgets'], ['☁️', 'set.backup', 'settings:backup'], ['⚙️', 'common.settings', 'settings'], ['💡', 'set.help', 'help'], ['ℹ️', 'set.about', 'about'],
   ];
   return `<div class="page">
     <div class="topbar"><button class="back" data-act="tab" data-to="home" aria-label="${t('nav.home')}">‹</button><h1>${t('nav.me')}</h1><button class="icon-btn" data-act="nav" data-to="settings">⚙️</button></div>

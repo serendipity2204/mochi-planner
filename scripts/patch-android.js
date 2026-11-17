@@ -27,6 +27,12 @@ for (const d of fs.readdirSync(res)) {
 }
 console.log('✓ icons & sounds copied');
 
+// 1b. Native sources (MainActivity + home-screen widgets)
+const javaDst = path.join(app, 'src', 'main', 'java', 'com', 'mochiplanner', 'app');
+fs.mkdirSync(javaDst, { recursive: true });
+copyDir(path.join(root, 'android-src', 'com', 'mochiplanner', 'app'), javaDst);
+console.log('✓ native widget sources');
+
 // 2. Permissions & queries in AndroidManifest.xml
 const manifestPath = path.join(app, 'src', 'main', 'AndroidManifest.xml');
 let mf = fs.readFileSync(manifestPath, 'utf8');
@@ -43,6 +49,17 @@ for (const p of perms) {
 }
 if (!mf.includes('android.speech.RecognitionService')) {
   mf = mf.replace('</manifest>', '    <queries>\n        <intent>\n            <action android:name="android.speech.RecognitionService" />\n        </intent>\n    </queries>\n</manifest>');
+}
+// Home-screen widget receivers
+const receiver = (cls, label, info) => `        <receiver android:name=".${cls}" android:exported="false" android:label="@string/${label}">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/${info}" />
+        </receiver>
+`;
+if (!mf.includes('.TodayWidget')) {
+  mf = mf.replace('</application>', receiver('TodayWidget', 'widget_today_name', 'widget_today_info') + receiver('AssignmentsWidget', 'widget_asg_name', 'widget_assignments_info') + '    </application>');
 }
 fs.writeFileSync(manifestPath, mf);
 console.log('✓ manifest permissions');
