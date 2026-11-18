@@ -110,7 +110,7 @@ export const syncNativeMessages = debounce(async () => {
       enabled: on, instant: !!settings().instant, uid: on ? state.me : '', refreshToken: on ? user.refreshToken || '' : '',
       apiKey: FIREBASE_CONFIG.apiKey, projectId: FIREBASE_CONFIG.projectId,
       names: JSON.stringify(names), notified: JSON.stringify(Object.fromEntries(notified)),
-      labels: JSON.stringify({ newMsg: t('chat.newMessage'), poke: t('friends.pokeTitle', { name: '{name}' }), pokeBody: t('friends.pokeBody'), friend: t('greet.friend'), image: t('chat.prevImage'), voice: t('chat.prevVoice'), card: t('chat.prevCard'), channel: t('friends.notify'), watchTitle: t('friends.watchTitle'), watchText: t('friends.watchText'), watchChannel: t('friends.instant') }),
+      labels: JSON.stringify({ newMsg: t('chat.newMessage'), poke: t('friends.pokeTitle', { name: '{name}' }), pokeBody: t('friends.pokeBody'), friend: t('greet.friend'), image: t('chat.prevImage'), voice: t('chat.prevVoice'), card: t('chat.prevCard'), channel: t('friends.notify'), channelId: store.state.settings.notif.sound && store.state.settings.notif.sound !== 'none' ? 'mochi_' + store.state.settings.notif.sound : '', watchTitle: t('friends.watchTitle'), watchText: t('friends.watchText'), watchChannel: t('friends.instant') }),
     });
   } catch (e) { console.warn('native msgs', e); }
 }, 1500);

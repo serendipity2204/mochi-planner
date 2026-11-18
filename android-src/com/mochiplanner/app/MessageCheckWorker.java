@@ -39,7 +39,7 @@ import org.json.JSONObject;
 public class MessageCheckWorker extends Worker {
     static final String PREFS = "mochi_msgs";
     static final String WORK = "mochi_msg_check";
-    static final String CHANNEL = "mochi_friends";
+    static final String CHANNEL = "mochi_friends_v2"; // vibrates (the old "mochi_friends" channel did not)
 
     public MessageCheckWorker(@NonNull Context c, @NonNull WorkerParameters p) { super(c, p); }
 
@@ -135,7 +135,7 @@ public class MessageCheckWorker extends Worker {
                 String title = who, body = str(last.optJSONObject("text"));
                 if ("poke".equals(type)) { title = labels.optString("poke", "{name}").replace("{name}", who); body = labels.optString("pokeBody", body); }
                 if (body.isEmpty()) body = labels.optString("newMsg", "New message");
-                show(ctx, chatId.hashCode(), title, body, from, labels.optString("channel", "Friends"));
+                show(ctx, chatId.hashCode(), title, body, from, labels.optString("channel", "Friends"), labels.optString("channelId", ""));
             }
             if (changed) p.edit().putString("notified", notified.toString()).apply();
         } catch (Exception ignored) {
@@ -162,12 +162,22 @@ public class MessageCheckWorker extends Worker {
         return false;
     }
 
-    static void show(Context ctx, int id, String title, String body, String fromUid, String channelName) {
+    static final long[] VIBE = {0, 250, 150, 250};
+
+    static void show(Context ctx, int id, String title, String body, String fromUid, String channelName, String appChannel) {
+        String channel = CHANNEL;
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-            if (nm != null && nm.getNotificationChannel(CHANNEL) == null) {
-                NotificationChannel ch = new NotificationChannel(CHANNEL, channelName, NotificationManager.IMPORTANCE_HIGH);
-                nm.createNotificationChannel(ch);
+            if (nm != null) {
+                try { nm.deleteNotificationChannel("mochi_friends"); } catch (Exception ignored) { }
+                // Prefer the app's own reminder channel (user's chosen sound + vibration)
+                if (appChannel != null && !appChannel.isEmpty() && nm.getNotificationChannel(appChannel) != null) channel = appChannel;
+                else if (nm.getNotificationChannel(CHANNEL) == null) {
+                    NotificationChannel ch = new NotificationChannel(CHANNEL, channelName, NotificationManager.IMPORTANCE_HIGH);
+                    ch.enableVibration(true);
+                    ch.setVibrationPattern(VIBE);
+                    nm.createNotificationChannel(ch);
+                }
             }
         }
         Intent open = new Intent(ctx, MainActivity.class);
@@ -177,7 +187,8 @@ public class MessageCheckWorker extends Worker {
         PendingIntent pi = PendingIntent.getActivity(ctx, id, open, flags);
         int icon = ctx.getResources().getIdentifier("ic_stat_mochi", "drawable", ctx.getPackageName());
         if (icon == 0) icon = ctx.getApplicationInfo().icon;
-        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL)
+        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, channel)
+            .setVibrate(VIBE).setDefaults(NotificationCompat.DEFAULT_SOUND)
             .setSmallIcon(icon).setContentTitle(title).setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setColor(0xFFEC6F9B).setAutoCancel(true).setContentIntent(pi)
