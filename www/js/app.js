@@ -143,6 +143,13 @@ on({
 });
 
 // ---------------- Boot ----------------
+function targetRoute({ uid, page } = {}) {
+  if (uid) return { name: 'chat', params: { uid } };
+  if (page === 'schedule') return { name: 'schedule', params: { view: 'day', date: dkey(new Date()) } };
+  if (page?.startsWith('tasks:')) return { name: 'tasks', params: { tab: page.slice(6) } };
+  return null;
+}
+
 async function boot() {
   try { await initStore(); }
   catch (e) { console.error(e); document.getElementById('splash').innerHTML = `<p style="padding:24px;text-align:center">⚠️ Storage unavailable / 无法访问本地存储<br><small>${esc(e.message)}</small></p>`; return; }
@@ -170,6 +177,9 @@ async function boot() {
   if (!store.state.settings.onboarded) await onboarding();
   if (store.state.timer.running && !store.state.timer.endAt) store.state.timer.running = false;
   timer.check();
+  // Opened from a widget / notification: start on that page instead of flashing the home page first
+  const target = targetRoute(await fr.takeOpenTarget());
+  if (target) route = target;
   render(true);
   await lockIfNeeded();
 
@@ -193,13 +203,6 @@ async function boot() {
   initFriends();
   setPokeHandler((other) => friendsView.showPoke(other));
   fr.setBannerHandler((m) => showBanner(m));
-  const openFromNotif = async () => {
-    const { uid, page } = await fr.takeOpenTarget();
-    if (uid) { closeSheet(); go('chat', { uid }); return; }
-    if (page === 'schedule') { closeSheet(); go('schedule', { view: 'day', date: dkey(new Date()) }); }
-    else if (page?.startsWith('tasks:')) { closeSheet(); go('tasks', { tab: page.slice(6) }); }
-  };
-  onResume(openFromNotif); setTimeout(openFromNotif, 1500);
   onFriends(() => { if (['friends', 'home', 'me', 'settings'].includes(route.name)) refreshIfIdle(); });
   try { const inv = new URLSearchParams(location.search).get('invite'); if (inv) { sessionStorage.setItem('mochi-invite', inv); history.replaceState(null, '', location.pathname); setTimeout(() => go('friends'), 800); } } catch {}
   cloud.initCloud();
@@ -215,14 +218,17 @@ async function boot() {
 
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') hiddenAt = Date.now(); });
-  onResume(() => {
+  onResume(async () => {
+    // Came back via a widget / notification tap: go straight to that page
+    const target = targetRoute(await fr.takeOpenTarget());
+    if (target) { closeSheet(); go(target.name, target.params); }
     timer.check();
     pushWidgets();
     reschedule();
     const s = store.state.settings.security;
     if (s.pin && s.lockOnResume && hiddenAt && Date.now() - hiddenAt > 60000) lockIfNeeded();
     hiddenAt = 0;
-    if (!sheetOpen()) render(false);
+    if (!target && !sheetOpen()) render(false);
   });
   onBack(() => {
     if (document.querySelector('.onboard')) return;
