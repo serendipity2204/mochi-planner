@@ -12,6 +12,7 @@ import * as cloud from './cloud.js';
 import { pushWidgets } from './widgets.js';
 import { checkUpdate } from './update.js';
 import { initFileSync, onFileSync } from './filesync.js';
+import { refreshPush, disablePush, pushPermission } from './push.js';
 
 import * as home from './views/home.js';
 import * as schedule from './views/schedule.js';
@@ -145,6 +146,15 @@ on({
 });
 
 // ---------------- Boot ----------------
+// ?open=chat:<uid> (from a tapped web push notification)
+function urlTarget() {
+  try {
+    const o = new URLSearchParams(location.search).get('open');
+    if (!o) return {};
+    history.replaceState(null, '', location.pathname);
+    return o.startsWith('chat:') ? { uid: o.slice(5) } : { page: o };
+  } catch { return {}; }
+}
 function targetRoute({ uid, page } = {}) {
   if (uid) return { name: 'chat', params: { uid } };
   if (page === 'schedule') return { name: 'schedule', params: { view: 'day', date: dkey(new Date()) } };
@@ -180,7 +190,7 @@ async function boot() {
   if (store.state.timer.running && !store.state.timer.endAt) store.state.timer.running = false;
   timer.check();
   // Opened from a widget / notification: start on that page instead of flashing the home page first
-  const target = targetRoute(await fr.takeOpenTarget());
+  const target = targetRoute(await fr.takeOpenTarget()) || targetRoute(urlTarget());
   if (target) route = target;
   render(true);
   await lockIfNeeded();
@@ -251,6 +261,12 @@ async function boot() {
 // Web / iPhone version: offline support + "Add to Home Screen" hint for Safari
 function registerWebApp() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch((e) => console.warn('sw', e));
+  navigator.serviceWorker?.addEventListener('message', (e) => {
+    if (e.data?.type !== 'open') return;
+    try { const o = new URL(e.data.url).searchParams.get('open'); const r = o && targetRoute(o.startsWith('chat:') ? { uid: o.slice(5) } : { page: o }); if (r) { closeSheet(); go(r.name, r.params); } } catch {}
+  });
+  cloud.onCloud((st) => { if (st.user && st.state === 'synced') refreshPush(); });
+  store.onChange((reason) => { if (reason === 'settings' && store.state.settings.friends.notify === false && pushPermission() === 'granted') disablePush(); });
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = navigator.standalone || window.matchMedia?.('(display-mode: standalone)').matches;
   let shown = false;

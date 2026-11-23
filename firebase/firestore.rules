@@ -56,6 +56,11 @@ service cloud.firestore {
       allow create: if signedIn() && isFriend(uid) && request.resource.data.keys().hasOnly([me()]);
       allow update: if signedIn() && isFriend(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([me()]);
     }
+    // Web-push subscriptions (iPhone home-screen app); friends may read them to send a notification
+    match /pushSubs/{uid} {
+      allow read: if signedIn() && (me() == uid || isFriend(uid));
+      allow write: if signedIn() && me() == uid;
+    }
     // Chats between two friends
     match /chats/{id} {
       allow get, write: if signedIn() && me() in id.split('_') && isFriend(otherOf(id));

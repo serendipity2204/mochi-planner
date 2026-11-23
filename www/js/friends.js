@@ -4,6 +4,7 @@ import { store } from './store.js';
 import * as cloud from './cloud.js';
 import { notifyNow, playSound, vibrate, plug } from './native.js';
 import { FIREBASE_CONFIG } from './firebase-config.js';
+import { sendPush } from './push.js';
 import { t } from './i18n.js';
 import { debounce, dkey, toMin, parseDate } from './utils.js';
 import { courseColor, expandCourse } from './data.js';
@@ -214,6 +215,11 @@ export const send = wrap(async (other, msg) => {
   await F.setDoc(chatRef, { users: [state.me, other].sort(), last: { type: msg.type, text: preview, from: state.me, at: now }, read: { [state.me]: now } }, { merge: true });
   // Tiny per-recipient inbox so their phone can check for new messages with a single read
   try { await F.setDoc(F.doc(db, 'inbox', other), { [state.me]: { at: now, type: msg.type, text: preview } }, { merge: true }); } catch (e) { console.warn('inbox', e); }
+  // Instant push to their iPhone / browser (if they turned it on)
+  const myName = state.profile?.name || store.state.profile.name || t('greet.friend');
+  sendPush(other, msg.type === 'poke'
+    ? { title: t('friends.pokeTitle', { name: myName }), body: t('friends.pokeBody'), tag: 'poke-' + state.me, url: './?open=chat:' + state.me }
+    : { title: myName, body: preview, tag: 'chat-' + state.me, url: './?open=chat:' + state.me });
 });
 export const poke = (other) => send(other, { type: 'poke', text: t('friends.pokeText') });
 

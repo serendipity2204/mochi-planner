@@ -6,6 +6,7 @@ import { on, go, back, rerender, openSheet, closeSheet, sheetHead, confirmDialog
 import * as cloud from '../cloud.js';
 import * as fr from '../friends.js';
 import { fileSync, MAX_FILE } from '../filesync.js';
+import * as push from '../push.js';
 import { notifPermission, notifyNow, playSound, SOUNDS, saveFile, isNative } from '../native.js';
 import { reschedule, buildReminders } from '../reminders.js';
 import { SECTION_IDS } from './home.js';
@@ -28,6 +29,16 @@ const sw = (path, val) => toggle(`data-set="${path}" data-type="bool"`, val);
 const sel = (path, opts, val, type = 'str') => select('', opts, val, `data-set="${path}" data-type="${type}"`);
 const group = (title, rows) => `${title ? `<div class="set-group-title">${title}</div>` : ''}<div class="set-group">${rows.join('')}</div>`;
 const leadOpts = (list) => list.map((m) => ({ value: m, label: m < 60 ? t('unit.min', { n: m }) : m % 1440 === 0 ? t('unit.day', { n: m / 1440 }) : t('unit.hour', { n: m / 60 }) }));
+
+function pushRow() {
+  const perm = push.pushPermission();
+  let sub = t('push.sub'), btn = `<button class="btn sm primary" data-act="push.enable">${t('push.enable')}</button>`;
+  if (push.isIOS() && !push.isStandalone()) { sub = t('push.needHome'); btn = ''; }
+  else if (!push.pushSupported()) { sub = t('push.unsupported'); btn = ''; }
+  else if (perm === 'denied') { sub = t(push.isIOS() ? 'push.denied' : 'push.deniedWeb'); btn = ''; }
+  else if (perm === 'granted') btn = `<span class="badge">${t('push.on')}</span> <button class="btn sm" data-act="push.test">${t('push.test')}</button>`;
+  return row('📲', t('push.title'), btn, sub);
+}
 
 export function render(params = {}) {
   const sec = params.section;
@@ -242,6 +253,7 @@ const BUILDERS = {
         row('📷', t('friends.allowMedia'), sw('friends.allowMedia', f.allowMedia), t('friends.allowMediaSub')),
         row('📣', t('friends.notify'), sw('friends.notify', f.notify), t('friends.notifySub')),
         isNative() && f.notify ? row('⚡', t('friends.instant'), sw('friends.instant', f.instant), t('friends.instantSub')) : '',
+        !isNative() && f.notify && push.pushConfigured() ? pushRow() : '',
       ])}
       ${f.shareTimetable && courses.length ? `<div class="set-group-title">${t('friends.whichCourses')}</div><div class="set-group">${courses.map((c) => `<label class="set-row"><span class="dot" style="background:${esc(c.color || '#EC6C9C')}"></span><span class="label">${esc(c.name)}<small>${esc(c.code || '')}</small></span><input type="checkbox" class="share-course" data-id="${c.id}" ${sel.includes(c.id) ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary)"></label>`).join('')}</div>` : ''}
       ${fr.state.friends.length ? `<div class="set-group-title">${t('friends.manage')}</div><div class="set-group">${fr.state.friends.map((x) => `<div class="set-row"><span class="label">${esc(fr.nameOf(x.other))}</span><button class="btn sm danger" data-act="friends.disconnect" data-uid="${x.other}">${t('friends.disconnect')}</button></div>`).join('')}</div>` : ''}
@@ -345,6 +357,14 @@ function stripRefs(id) {
 }
 
 on({
+  'push.enable': async (el) => {
+    el.disabled = true;
+    try { await push.enablePush(); toast(t('push.enabled')); rerender(); }
+    catch (e) { el.disabled = false; toast(e.mochi ? t('err.' + e.message) : errMsg(e), 'err'); }
+  },
+  'push.test': async () => {
+    try { const reg = await navigator.serviceWorker.ready; await reg.showNotification(t('push.testTitle'), { body: t('push.testBody'), icon: './assets/icon-192.png' }); } catch (e) { toast(errMsg(e), 'err'); }
+  },
   'set.open': (el) => { const k = el.dataset.sec; if (k === 'help' || k === 'about') go(k); else go('settings', { section: k }); },
   'set.lang': (el) => { set().lang = el.dataset.v; commit('settings'); applyLang(); reschedule(); rerender(); toast(t('set.langChanged')); },
   'set.mode': (el) => { set().appearance.mode = el.dataset.v; commit('settings'); applyAppearance(); rerender(); },
