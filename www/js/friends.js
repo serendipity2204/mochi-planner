@@ -226,11 +226,32 @@ export async function markRead(other) {
   try { await F.setDoc(F.doc(db, 'chats', id), { users: [state.me, other].sort(), read: { [state.me]: Date.now() } }, { merge: true }); } catch (e) { console.warn(e); }
 }
 
+export const clearedAt = (other) => state.chats[pairId(state.me, other)]?.cleared?.[state.me] || 0;
 export function listenMessages(other, cb, limit = 80) {
   const { F, db } = FS();
-  const q = F.query(F.collection(db, 'chats', pairId(state.me, other), 'messages'), F.orderBy('clientTime', 'desc'), F.limit(limit));
+  const col = F.collection(db, 'chats', pairId(state.me, other), 'messages');
+  const since = clearedAt(other);
+  const q = since ? F.query(col, F.where('clientTime', '>', since), F.orderBy('clientTime', 'desc'), F.limit(limit)) : F.query(col, F.orderBy('clientTime', 'desc'), F.limit(limit));
   return F.onSnapshot(q, (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })).reverse()), (e) => cb(null, cloud.normalize(e)));
 }
+/** Clear the chat history for me; optionally also delete every message I sent (gone for both). */
+export const clearChat = wrap(async (other, deleteMine = false) => {
+  needMe();
+  const { F, db } = FS();
+  const id = pairId(state.me, other);
+  const now = Date.now();
+  if (deleteMine) {
+    const mine = await F.getDocs(F.query(F.collection(db, 'chats', id, 'messages'), F.where('from', '==', state.me)));
+    const docs = mine.docs;
+    for (let i = 0; i < docs.length; i += 400) {
+      const b = F.writeBatch(db);
+      docs.slice(i, i + 400).forEach((d) => b.delete(d.ref));
+      await b.commit();
+    }
+  }
+  await F.setDoc(F.doc(db, 'chats', id), { users: [state.me, other].sort(), cleared: { [state.me]: now }, read: { [state.me]: now } }, { merge: true });
+  state.chats[id] = { ...(state.chats[id] || {}), cleared: { ...(state.chats[id]?.cleared || {}), [state.me]: now } };
+});
 export const deleteMessage = wrap(async (other, mid) => { const { F, db } = FS(); await F.deleteDoc(F.doc(db, 'chats', pairId(state.me, other), 'messages', mid)); });
 export const editMessage = wrap(async (other, msg, text) => {
   const { F, db } = FS();

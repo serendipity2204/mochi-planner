@@ -139,20 +139,22 @@ function paint() {
 }
 
 let chatWait = null;
+function listenChat() {
+  if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+  try {
+    chatUnsub = fr.listenMessages(chatOther, (list, err) => {
+      if (err) { const b = $('#msgs'); if (b) b.innerHTML = `<div class="empty">${esc(errMsg(err))}</div>`; return; }
+      messages = list; paint(); fr.markRead(chatOther);
+    });
+  } catch (e) { const b = $('#msgs'); if (b) b.innerHTML = `<div class="empty">${esc(errMsg(cloud.normalize(e)))}</div>`; }
+}
 export function mountChat(root, params) {
   unmountChat();
   chatOther = params.uid;
   fr.state.openChat = chatOther;
   paint.done = false;
   document.body.classList.add('in-chat');
-  const listen = () => {
-    try {
-      chatUnsub = fr.listenMessages(chatOther, (list, err) => {
-        if (err) { const b = $('#msgs'); if (b) b.innerHTML = `<div class="empty">${esc(errMsg(err))}</div>`; return; }
-        messages = list; paint(); fr.markRead(chatOther);
-      });
-    } catch (e) { const b = $('#msgs'); if (b) b.innerHTML = `<div class="empty">${esc(errMsg(cloud.normalize(e)))}</div>`; }
-  };
+  const listen = listenChat;
   if (fr.state.me && fr.state.ready) listen();
   else {
     // Opened straight from a notification: wait until the cloud connection and friend list are ready
@@ -321,7 +323,23 @@ on({
     const row = (ic, label, act, extra = '') => `<button class="set-row" data-act="${act}" data-uid="${other}" ${extra}><span class="ic">${ic}</span><span class="label">${label}</span><span class="chev"></span></button>`;
     openSheet(`${sheetHead(fr.nameOf(other))}<div class="center" style="margin-bottom:12px">${avatar(fr.avatarOf(other), 72).replace('class="avatar"', 'class="avatar" style="margin:0 auto"')}<div class="small" style="margin-top:8px">${statusLine(other)}</div></div>
       <div class="set-group">${row('💬', t('chat.title'), 'chat.open')}${sh?.shareTimetable ? row('📅', t('friends.timetable'), 'friends.timetable') : ''}${sh?.allowReminders !== false ? row('🔔', t('friends.poke'), 'friends.poke') : ''}</div>
-      <div class="set-group">${row('✂️', `<span style="color:var(--red)">${t('friends.disconnect')}</span>`, 'friends.disconnect')}</div>`);
+      <div class="set-group">${row('🧹', `<span style="color:var(--red)">${t('chat.clear')}</span>`, 'chat.clear')}${row('✂️', `<span style="color:var(--red)">${t('friends.disconnect')}</span>`, 'friends.disconnect')}</div>`);
+  },
+  'chat.clear': (el) => {
+    const other = el.dataset.uid;
+    closeSheet();
+    const sh = openSheet(`${sheetHead('🧹 ' + t('chat.clear'))}
+      <p style="margin:0 0 14px;line-height:1.5">${t('chat.clearMsg', { name: esc(fr.nameOf(other)) })}</p>
+      <label class="set-row" style="border-radius:16px;background:var(--card-2);margin-bottom:14px"><span class="label">${t('chat.clearMine')}<small>${t('chat.clearMineSub')}</small></span><input type="checkbox" id="clear-mine" style="width:22px;height:22px;accent-color:var(--primary)"></label>
+      <div class="sheet-actions"><button class="btn" data-act="sheet.close">${t('common.cancel')}</button><button class="btn danger" id="clear-go">${t('chat.clearBtn')}</button></div>`);
+    sh.querySelector('#clear-go').addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      try {
+        await fr.clearChat(other, sh.querySelector('#clear-mine').checked);
+        closeSheet(); toast(t('chat.cleared'));
+        if (currentRoute().name === 'chat' && chatOther === other) { messages = []; paint(); listenChat(); }
+      } catch (err) { e.target.disabled = false; toast(errMsg(err), 'err'); }
+    });
   },
   'friends.disconnect': async (el) => {
     const other = el.dataset.uid, f = fr.friendshipWith(other);
