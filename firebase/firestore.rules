@@ -49,6 +49,13 @@ service cloud.firestore {
       allow read: if signedIn() && (me() == uid || isFriend(uid));
       allow write: if signedIn() && me() == uid;
     }
+    // Latest-message preview per sender; the recipient's phone reads this one document
+    // in the background instead of every chat (saves the free daily read quota)
+    match /inbox/{uid} {
+      allow get, delete: if signedIn() && me() == uid;
+      allow create: if signedIn() && isFriend(uid) && request.resource.data.keys().hasOnly([me()]);
+      allow update: if signedIn() && isFriend(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([me()]);
+    }
     // Chats between two friends
     match /chats/{id} {
       allow get, write: if signedIn() && me() in id.split('_') && isFriend(otherOf(id));

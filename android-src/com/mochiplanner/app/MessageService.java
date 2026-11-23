@@ -20,7 +20,7 @@ import org.json.JSONObject;
 public class MessageService extends Service {
     static final String CHANNEL = "mochi_watch";
     static final int NOTIF_ID = 7302;
-    static final long EVERY = 20 * 1000L;
+    static final long EVERY = 30 * 1000L, NIGHT = 15 * 60 * 1000L;
     private HandlerThread thread;
     private Handler handler;
 
@@ -60,8 +60,8 @@ public class MessageService extends Service {
         @Override public void run() {
             Context ctx = getApplicationContext();
             if (!MessageCheckWorker.instant(ctx)) { stopSelf(); return; }
-            MessageCheckWorker.check(ctx);
-            handler.postDelayed(this, EVERY);
+            MessageCheckWorker.check(ctx, false);
+            handler.postDelayed(this, MessageCheckWorker.night() ? NIGHT : EVERY);
         }
     };
 

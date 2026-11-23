@@ -104,12 +104,15 @@ export const syncNativeMessages = debounce(async () => {
   if (!W?.configureMessages) return;
   try {
     const user = cloud.getFB()?.auth?.currentUser;
-    const on = !!(state.me && user && settings().notify);
+    const on = !!(state.me && user && settings().notify && state.friends.length);
+    // everything already read or alerted in the app counts as seen
+    const seen = Object.fromEntries(notified);
+    for (const [id, c] of Object.entries(state.chats)) seen[id] = Math.max(seen[id] || 0, c.read?.[state.me] || 0, c.last?.from === state.me ? c.last.at || 0 : 0);
     const names = Object.fromEntries(state.friends.map((f) => [f.other, nameOf(f.other)]));
     await W.configureMessages({
       enabled: on, instant: !!settings().instant, uid: on ? state.me : '', refreshToken: on ? user.refreshToken || '' : '',
       apiKey: FIREBASE_CONFIG.apiKey, projectId: FIREBASE_CONFIG.projectId,
-      names: JSON.stringify(names), notified: JSON.stringify(Object.fromEntries(notified)),
+      names: JSON.stringify(names), notified: JSON.stringify(seen),
       labels: JSON.stringify({ newMsg: t('chat.newMessage'), poke: t('friends.pokeTitle', { name: '{name}' }), pokeBody: t('friends.pokeBody'), friend: t('greet.friend'), image: t('chat.prevImage'), voice: t('chat.prevVoice'), card: t('chat.prevCard'), channel: t('friends.notify'), channelId: store.state.settings.notif.sound && store.state.settings.notif.sound !== 'none' ? 'mochi_' + store.state.settings.notif.sound : '', watchTitle: t('friends.watchTitle'), watchText: t('friends.watchText'), watchChannel: t('friends.instant') }),
     });
   } catch (e) { console.warn('native msgs', e); }
@@ -209,6 +212,8 @@ export const send = wrap(async (other, msg) => {
   await F.addDoc(F.collection(chatRef, 'messages'), { ...msg, from: state.me, createdAt: F.serverTimestamp(), clientTime: now });
   const preview = msg.type === 'text' ? msg.text.slice(0, 80) : msg.type === 'poke' ? t('chat.prevPoke') : msg.type === 'image' ? t('chat.prevImage') : msg.type === 'voice' ? t('chat.prevVoice') : t('chat.prevCard');
   await F.setDoc(chatRef, { users: [state.me, other].sort(), last: { type: msg.type, text: preview, from: state.me, at: now }, read: { [state.me]: now } }, { merge: true });
+  // Tiny per-recipient inbox so their phone can check for new messages with a single read
+  try { await F.setDoc(F.doc(db, 'inbox', other), { [state.me]: { at: now, type: msg.type, text: preview } }, { merge: true }); } catch (e) { console.warn('inbox', e); }
 });
 export const poke = (other) => send(other, { type: 'poke', text: t('friends.pokeText') });
 
@@ -217,6 +222,7 @@ export async function markRead(other) {
   const { F, db } = FS();
   const id = pairId(state.me, other);
   if ((state.chats[id]?.read?.[state.me] || 0) >= (state.chats[id]?.last?.at || 0)) return;
+  nativeSeen(id, state.chats[id]?.last?.at || Date.now());
   try { await F.setDoc(F.doc(db, 'chats', id), { users: [state.me, other].sort(), read: { [state.me]: Date.now() } }, { merge: true }); } catch (e) { console.warn(e); }
 }
 

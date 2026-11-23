@@ -10,7 +10,7 @@ import android.os.SystemClock;
 
 /** Re-arming 1-minute alarm that checks for friend messages while the app is closed. */
 public class MessageAlarmReceiver extends BroadcastReceiver {
-    static final long EVERY = 60 * 1000L;
+    static final long EVERY = 60 * 1000L, NIGHT = 15 * 60 * 1000L;
 
     private static PendingIntent pi(Context ctx) {
         Intent i = new Intent(ctx, MessageAlarmReceiver.class);
@@ -23,7 +23,7 @@ public class MessageAlarmReceiver extends BroadcastReceiver {
         if (am == null) return;
         PendingIntent p = pi(ctx);
         if (!on) { am.cancel(p); return; }
-        long at = SystemClock.elapsedRealtime() + EVERY;
+        long at = SystemClock.elapsedRealtime() + (MessageCheckWorker.night() ? NIGHT : EVERY);
         try {
             boolean exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms();
             if (Build.VERSION.SDK_INT >= 23) {
@@ -44,7 +44,7 @@ public class MessageAlarmReceiver extends BroadcastReceiver {
         schedule(ctx, true); // arm the next round first
         final PendingResult pr = goAsync();
         new Thread(() -> {
-            try { MessageCheckWorker.check(ctx); } finally { pr.finish(); }
+            try { MessageCheckWorker.check(ctx, false); } finally { pr.finish(); }
         }).start();
     }
 }

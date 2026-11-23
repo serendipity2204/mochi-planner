@@ -55,7 +55,7 @@ public class MessageCheckWorker extends Worker {
     @NonNull @Override
     public Result doWork() {
         Context ctx = getApplicationContext();
-        check(ctx);
+        check(ctx, true);
         ensure(ctx); // keeps the 1-minute alarm chain / fast mode alive (e.g. after the system cleared it)
         return Result.success();
     }
@@ -72,7 +72,19 @@ public class MessageCheckWorker extends Worker {
     }
 
     /** Looks for unread friend messages and notifies. Safe to call from any background thread. */
-    static synchronized void check(Context ctx) {
+    /** Quiet hours (00:00–07:00): check much less often to save reads and battery. */
+    static boolean night() {
+        int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        return h < 7;
+    }
+
+    static String pairId(String a, String b) { return a.compareTo(b) < 0 ? a + "_" + b : b + "_" + a; }
+
+    /**
+     * full = false: read only inbox/{me} (1 Firestore read) – used by the 1-minute alarm and fast mode.
+     * full = true : query all my chats – used every ~15 min as a fallback for friends on older app versions.
+     */
+    static synchronized void check(Context ctx, boolean full) {
         SharedPreferences p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         if (!p.getBoolean("enabled", false)) return;
         if (appInForeground(ctx)) return; // the app shows its own alerts
@@ -92,6 +104,8 @@ public class MessageCheckWorker extends Worker {
                 if (!newRt.isEmpty() && !newRt.equals(rt)) e.putString("refreshToken", newRt);
                 e.apply();
             }
+
+            if (!full) { checkInbox(ctx, p, uid, proj, idToken); return; }
 
             // 2. Chats that include me
             JSONObject q = new JSONObject().put("structuredQuery", new JSONObject()
@@ -141,6 +155,41 @@ public class MessageCheckWorker extends Worker {
         } catch (Exception ignored) {
             // try again next round
         }
+    }
+
+    private static void checkInbox(Context ctx, SharedPreferences p, String uid, String proj, String idToken) throws Exception {
+        String res;
+        try {
+            res = http("https://firestore.googleapis.com/v1/projects/" + proj + "/databases/(default)/documents/inbox/" + uid, "GET", "application/json", null, idToken, ctx);
+        } catch (Exception ex) {
+            String m = String.valueOf(ex.getMessage());
+            if (m.contains("HTTP 401")) p.edit().remove("idToken").apply();
+            if (m.contains("HTTP 404")) return; // nobody has written to my inbox yet
+            throw ex;
+        }
+        JSONObject f = new JSONObject(res).optJSONObject("fields");
+        if (f == null) return;
+        JSONObject notified = new JSONObject(p.getString("notified", "{}"));
+        JSONObject names = new JSONObject(p.getString("names", "{}"));
+        JSONObject labels = new JSONObject(p.getString("labels", "{}"));
+        boolean changed = false;
+        java.util.Iterator<String> it = f.keys();
+        while (it.hasNext()) {
+            String from = it.next();
+            JSONObject e = map(f.optJSONObject(from));
+            if (e == null || from.equals(uid)) continue;
+            long at = num(e.optJSONObject("at"));
+            String chatId = pairId(uid, from);
+            if (at <= 0 || at <= notified.optLong(chatId, 0)) continue;
+            notified.put(chatId, at); changed = true;
+            String who = names.optString(from, labels.optString("friend", "Friend"));
+            String type = str(e.optJSONObject("type"));
+            String title = who, body = str(e.optJSONObject("text"));
+            if ("poke".equals(type)) { title = labels.optString("poke", "{name}").replace("{name}", who); body = labels.optString("pokeBody", body); }
+            if (body.isEmpty()) body = labels.optString("newMsg", "New message");
+            show(ctx, chatId.hashCode(), title, body, from, labels.optString("channel", "Friends"), labels.optString("channelId", ""));
+        }
+        if (changed) p.edit().putString("notified", notified.toString()).apply();
     }
 
     private static JSONObject map(JSONObject v) { return v == null || v.optJSONObject("mapValue") == null ? null : v.optJSONObject("mapValue").optJSONObject("fields"); }
