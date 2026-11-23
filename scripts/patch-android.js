@@ -41,6 +41,7 @@ const perms = [
   'android.permission.SCHEDULE_EXACT_ALARM',
   'android.permission.RECEIVE_BOOT_COMPLETED',
   'android.permission.RECORD_AUDIO',
+  'android.permission.MODIFY_AUDIO_SETTINGS', // needed by the WebView for voice messages
   'android.permission.VIBRATE',
   'android.permission.WAKE_LOCK',
   'android.permission.USE_EXACT_ALARM',

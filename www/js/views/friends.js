@@ -6,7 +6,7 @@ import { on, go, rerender, openSheet, closeSheet, sheetHead, confirmDialog, toas
 import { pigSVG } from '../pig.js';
 import * as fr from '../friends.js';
 import * as cloud from '../cloud.js';
-import { saveFile, isNative, playSound } from '../native.js';
+import { saveFile, isNative, playSound, plug } from '../native.js';
 import { pigProps, sortedAssignments, upcomingExams, sessionsOf, normalizeCourse } from '../data.js';
 import { sessionLine } from './schedule.js';
 import { APP } from '../config.js';
@@ -199,8 +199,13 @@ async function sendImage() {
 let recChunks = [], recStart = 0, recTimer = null, recStream = null;
 async function startRecording() {
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return toast(t('chat.noRecord'), 'err');
+  // Android: ask for the microphone permission first (the WebView can't show the system prompt itself)
+  const SR = plug('SpeechRecognition');
+  if (SR) {
+    try { const pm = await SR.requestPermissions(); if (pm.speechRecognition && pm.speechRecognition !== 'granted') return toast(t('err.micDeniedApp'), 'err'); } catch {}
+  }
   try { recStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch { return toast(t('err.micDenied'), 'err'); }
+  catch (e) { console.warn('mic', e); return toast(t(isNative() ? 'err.micDeniedApp' : 'err.micDenied'), 'err'); }
   const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/aac', 'audio/ogg;codecs=opus'].find((m) => MediaRecorder.isTypeSupported?.(m)) || '';
   recorder = new MediaRecorder(recStream, mime ? { mimeType: mime, audioBitsPerSecond: 24000 } : {});
   recChunks = [];
