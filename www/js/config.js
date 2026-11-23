@@ -10,6 +10,6 @@ export const APP = {
 
 // Push server (Cloudflare Worker, see push-worker/). Leave url empty until the worker is deployed.
 export const PUSH = {
-  url: '',
+  url: 'https://mochi-push.byievun.workers.dev',
   publicKey: 'BLqesH5hnKBU7r1QCogXTBAjepmO_xS3iz483l5vQswU3JP8nh_PgcBEMO5axM1qEPybwd8ZfCcj_CcZa3FQkd8',
 };
