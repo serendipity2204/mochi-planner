@@ -138,18 +138,34 @@ function paint() {
   paint.done = true;
 }
 
+let chatWait = null;
 export function mountChat(root, params) {
   unmountChat();
   chatOther = params.uid;
   fr.state.openChat = chatOther;
   paint.done = false;
   document.body.classList.add('in-chat');
-  try {
-    chatUnsub = fr.listenMessages(chatOther, (list, err) => {
-      if (err) { const b = $('#msgs'); if (b) b.innerHTML = `<div class="empty">${esc(errMsg(err))}</div>`; return; }
-      messages = list; paint(); fr.markRead(chatOther);
+  const listen = () => {
+    try {
+      chatUnsub = fr.listenMessages(chatOther, (list, err) => {
+        if (err) { const b = $('#msgs'); if (b) b.innerHTML = `<div class="empty">${esc(errMsg(err))}</div>`; return; }
+        messages = list; paint(); fr.markRead(chatOther);
+      });
+    } catch (e) { const b = $('#msgs'); if (b) b.innerHTML = `<div class="empty">${esc(errMsg(cloud.normalize(e)))}</div>`; }
+  };
+  if (fr.state.me && fr.state.ready) listen();
+  else {
+    // Opened straight from a notification: wait until the cloud connection and friend list are ready
+    const uid = chatOther;
+    chatWait = fr.onFriends((st) => {
+      if (!st.me || !st.ready || chatOther !== uid) return;
+      chatWait?.(); chatWait = null;
+      const tmp = document.createElement('div'); tmp.innerHTML = renderChat({ uid });
+      const top = root.querySelector('.chat-top'), fresh = tmp.querySelector('.chat-top');
+      if (top && fresh) top.replaceWith(fresh);
+      listen();
     });
-  } catch (e) { $('#msgs').innerHTML = `<div class="empty">${esc(errMsg(cloud.normalize(e)))}</div>`; }
+  }
   root.querySelector('#composer').addEventListener('submit', async (e) => {
     e.preventDefault();
     const inp = e.target.text; const text = inp.value.trim(); if (!text) return;
@@ -159,6 +175,7 @@ export function mountChat(root, params) {
 }
 export function unmountChat() {
   if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+  if (chatWait) { chatWait(); chatWait = null; }
   stopRecording(true);
   fr.state.openChat = null;
   document.body.classList.remove('in-chat');
