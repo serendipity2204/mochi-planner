@@ -4,11 +4,13 @@ import { t } from './i18n.js';
 import { esc, shrinkImage, fmtBytes } from './utils.js';
 import { openSheet, sheetHead, pickFiles, toast } from './ui.js';
 import { saveFile } from './native.js';
+import { fetchFile } from './filesync.js';
+import { status as cloudStatus } from './cloud.js';
 
 const urls = new Map();
 async function urlFor(id) {
   if (urls.has(id)) return urls.get(id);
-  const f = await getFile(id);
+  const f = (await getFile(id)) || (await fetchFile(id));
   if (!f) return null;
   const u = { url: URL.createObjectURL(f.blob), type: f.type, name: f.name, size: f.size };
   urls.set(id, u);
@@ -22,6 +24,7 @@ export function thumbsHTML(ids = [], { removable = false } = {}) {
 // Fill thumbnails asynchronously
 export async function hydrateThumbs(root) {
   for (const el of root.querySelectorAll('.thumb[data-file]')) {
+    if (cloudStatus.user && !urls.has(el.dataset.file)) el.innerHTML = '<div class="muted">☁️<br>…</div>' + (el.querySelector('.x')?.outerHTML || '');
     const u = await urlFor(el.dataset.file);
     if (!u) { el.innerHTML = '⚠️<br>' + esc(t('file.missing')); continue; }
     const x = el.querySelector('.x');
@@ -54,7 +57,7 @@ export async function openFile(id) {
 }
 
 export async function shareFile(id) {
-  const f = await getFile(id);
+  const f = (await getFile(id)) || (await fetchFile(id));
   if (!f) return;
   await saveFile(f.name, f.blob);
 }

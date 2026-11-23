@@ -319,6 +319,11 @@ export const deleteAccount = wrap(async (password) => {
   stopListener();
   const backups = await F.getDocs(F.collection(db, 'users', u.uid, 'backups'));
   for (const d of backups.docs) await F.deleteDoc(d.ref);
+  const files = await F.getDocs(F.collection(db, 'users', u.uid, 'files'));
+  for (const d of files.docs) {
+    for (let i = 0; i < Math.max(d.data().chunks || 0, 1); i++) await F.deleteDoc(F.doc(db, 'users', u.uid, 'files', d.id, 'parts', String(i)));
+    await F.deleteDoc(d.ref);
+  }
   await F.deleteDoc(F.doc(db, 'users', u.uid));
   await A.deleteUser(u);
   Object.assign(C(), { uid: null, email: null, lastSync: null, lastRemote: 0 });

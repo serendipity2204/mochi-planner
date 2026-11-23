@@ -5,6 +5,7 @@ import { esc, fmtBytes, dkey, shrinkImage, blobToDataURL } from '../utils.js';
 import { on, go, back, rerender, openSheet, closeSheet, sheetHead, confirmDialog, promptDialog, toast, errMsg, formData, fieldError, select, toggle, pickFiles, loading, empty, closeAllSheets } from '../ui.js';
 import * as cloud from '../cloud.js';
 import * as fr from '../friends.js';
+import { fileSync, MAX_FILE } from '../filesync.js';
 import { notifPermission, notifyNow, playSound, SOUNDS, saveFile, isNative } from '../native.js';
 import { reschedule, buildReminders } from '../reminders.js';
 import { SECTION_IDS } from './home.js';
@@ -192,6 +193,7 @@ const BUILDERS = {
       btnRow('📦', t('cloud.backupNow'), 'cloud.backup', c.lastCloudBackup ? t('cloud.lastBackup', { t: fmtDateTime(c.lastCloudBackup) }) : t('cloud.backupSub')),
       btnRow('♻️', t('cloud.restore'), 'cloud.restoreList', t('cloud.restoreSub')),
       row('📊', t('cloud.usage'), `<span class="val">${c.size ? fmtBytes(c.size) + ' / 1 MB' : '-'}</span>`, t('cloud.usageSub')),
+      row('🖼️', t('cloud.files'), `<span class="val">${fileSync.running ? t('cloud.filesSyncing') : t('cloud.filesCount', { n: fileSync.synced })}</span>`, t('cloud.filesSub', { mb: MAX_FILE / 1048576 }) + (fileSync.tooBig ? ' · ' + t('cloud.filesTooBig', { n: fileSync.tooBig }) : '') + (fileSync.error ? ' · ⚠️ ' + errMsg(fileSync.error) : '')),
     ] : [btnRow('☁️', t('cloud.signInToSync'), 'cloud.goAccount', t('cloud.signInToSyncSub'))];
     return `${group(t('backup.cloud'), cloudRows)}
       ${group(t('backup.local'), [
@@ -205,7 +207,7 @@ const BUILDERS = {
         btnRow('📥', t('backup.import'), 'backup.import', t('backup.importSub')),
       ])}
       ${group(t('backup.storage'), [`<div id="usage">${loading()}</div>`, btnRow('🗂️', t('backup.files'), 'backup.files', t('backup.filesSub'))])}
-      <p class="small muted" style="margin:0 6px">${t('cloud.filesNote')}</p>`;
+      <p class="small muted" style="margin:0 6px">${t(u ? 'cloud.filesNoteOn' : 'cloud.filesNote')}</p>`;
   },
   privacy() {
     const s = set().security;

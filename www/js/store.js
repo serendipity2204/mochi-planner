@@ -110,6 +110,7 @@ export async function putFile(file) {
   await tx('files', 'readwrite', (s) => s.put(rec));
   return rec.id;
 }
+export const putFileRecord = (rec) => tx('files', 'readwrite', (s) => s.put(rec));
 export const getFile = (id) => tx('files', 'readonly', (s) => s.get(id));
 export const delFile = (id) => tx('files', 'readwrite', (s) => s.delete(id));
 export const listFiles = () => tx('files', 'readonly', (s) => s.getAll());

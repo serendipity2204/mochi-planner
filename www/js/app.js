@@ -11,6 +11,7 @@ import { lockIfNeeded } from './lock.js';
 import * as cloud from './cloud.js';
 import { pushWidgets } from './widgets.js';
 import { checkUpdate } from './update.js';
+import { initFileSync, onFileSync } from './filesync.js';
 
 import * as home from './views/home.js';
 import * as schedule from './views/schedule.js';
@@ -201,6 +202,7 @@ async function boot() {
     { center: true, cls: 'dialog', sticky: true, onClose: () => resolve(choice) });
     el.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { choice = b.dataset.c; closeSheet(); }));
   }));
+  let rt; const debounceRefresh = () => { clearTimeout(rt); rt = setTimeout(() => refreshIfIdle(), 600); };
   const refreshIfIdle = () => { if (!sheetOpen() && !document.activeElement?.matches('input,textarea,select')) render(false); };
   initFriends();
   setPokeHandler((other) => friendsView.showPoke(other));
@@ -208,10 +210,13 @@ async function boot() {
   onFriends(() => { if (['friends', 'home', 'me', 'settings'].includes(route.name)) refreshIfIdle(); });
   try { const inv = new URLSearchParams(location.search).get('invite'); if (inv) { sessionStorage.setItem('mochi-invite', inv); history.replaceState(null, '', location.pathname); setTimeout(() => go('friends'), 800); } } catch {}
   cloud.initCloud();
+  initFileSync();
+  window.addEventListener('mochi-files', debounceRefresh);
   store.onChange(() => pushWidgets());
   pushWidgets();
   store.onChange((reason) => { if (['remote', 'restore', 'import'].includes(reason)) { applyLang(); settings.applyAppearance(); reschedule(); refreshIfIdle(); } });
   cloud.onCloud(() => { if (['settings', 'me', 'friends'].includes(route.name)) refreshIfIdle(); });
+  onFileSync(() => { if (route.name === 'settings' && route.params?.section === 'backup') refreshIfIdle(); });
 
   setInterval(() => {
     timer.check();
