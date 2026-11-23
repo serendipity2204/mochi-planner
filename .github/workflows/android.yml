@@ -86,6 +86,9 @@ jobs:
           make_latest: true
           files: MochiPlanner-*.apk
           body: |
+            ✨ **更新内容 / What's new**
+            ${{ github.event.head_commit.message }}
+
             📱 **下载安装 / Install**
             1. 在安卓手机或平板上下载下面的 `MochiPlanner-v0.3.${{ github.run_number }}.apk`
             2. 打开文件，允许「安装未知来源应用」，点击安装

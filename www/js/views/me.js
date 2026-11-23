@@ -10,6 +10,7 @@ import { openExternal, isNative } from '../native.js';
 import { pigName } from './focus.js';
 import { status as cloudStatus } from '../cloud.js';
 import { unreadCount } from '../friends.js';
+import { checkUpdate } from '../update.js';
 
 const S = () => store.state;
 
@@ -85,12 +86,13 @@ export function renderAbout() {
   return `<div class="page"><div class="topbar"><button class="back" data-act="back">‹</button><h1>${t('set.about')}</h1></div>
     <div class="card center"><div style="display:inline-block;background:var(--primary-3);border-radius:32px;padding:10px">${pigSVG({ size: 110, acc: 'bow', expr: 'happy', cls: 'pig-anim' })}</div>
       <h2 style="margin-top:10px">${t('app.name')}</h2><div class="muted small">${t('app.tagline')}</div>
-      <div class="badge" style="margin-top:10px">${t('about.version')} ${APP.version}${APP.build && !APP.build.startsWith('__') ? ` (build ${esc(APP.build)})` : ''}</div></div>
+      <div class="badge" style="margin-top:10px">${t('about.version')} ${isNative() && /^\d+$/.test(APP.build) ? APP.version.replace(/\d+$/, APP.build) : APP.version + (APP.build && !APP.build.startsWith('__') ? ` (build ${esc(APP.build)})` : '')}</div></div>
     <div class="set-group" style="margin-top:14px">
       <div class="set-row"><span class="ic">👩‍💻</span><span class="label">${t('about.developer')}</span><span class="val">${esc(APP.developer)}</span></div>
       <button class="set-row" data-act="about.doc" data-doc="privacy"><span class="ic">🔒</span><span class="label">${t('about.privacy')}</span><span class="chev"></span></button>
       <button class="set-row" data-act="about.doc" data-doc="terms"><span class="ic">📜</span><span class="label">${t('about.terms')}</span><span class="chev"></span></button>
       <button class="set-row" data-act="about.doc" data-doc="licenses"><span class="ic">🧩</span><span class="label">${t('about.licenses')}</span><span class="chev"></span></button>
+      ${isNative() ? `<button class="set-row" data-act="about.update"><span class="ic">🔄</span><span class="label">${t('update.check')}</span><span class="chev"></span></button>` : ''}
       <button class="set-row" data-act="about.repo"><span class="ic">🐙</span><span class="label">GitHub<small>${esc(APP.repoUrl)}</small></span><span class="chev"></span></button>
     </div>
     <p class="center tiny muted">${t('about.made')}</p></div>`;
@@ -103,6 +105,7 @@ const LICENSES = [
 ];
 
 on({
+  'about.update': () => { toast(t('update.checking')); checkUpdate({ manual: true }); },
   'me.go': (el) => {
     const [to, sec] = el.dataset.to.split(':');
     if (to === 'wardrobe') return runAction('pig.wardrobe', el, { target: el });

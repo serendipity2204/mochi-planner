@@ -10,6 +10,7 @@ import * as timer from './timer.js';
 import { lockIfNeeded } from './lock.js';
 import * as cloud from './cloud.js';
 import { pushWidgets } from './widgets.js';
+import { checkUpdate } from './update.js';
 
 import * as home from './views/home.js';
 import * as schedule from './views/schedule.js';
@@ -182,6 +183,7 @@ async function boot() {
   if (target) route = target;
   render(true);
   await lockIfNeeded();
+  setTimeout(() => checkUpdate(), 4000);
 
   // Ask for notification permission once (Android 13+ needs it)
   if (store.state.settings.notif.enabled && !store.state.settings.notifAsked) {
