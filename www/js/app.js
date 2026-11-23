@@ -1,7 +1,7 @@
 // App shell: boot, routing, navigation, quick-add, onboarding, lock, global events.
 import { store, initStore, commit } from './store.js';
 import { t, applyLang, lang } from './i18n.js';
-import { esc } from './utils.js';
+import { esc, dkey } from './utils.js';
 import { on, runAction, setRouter, openSheet, closeSheet, sheetOpen, sheetHead, toast, errMsg, $ } from './ui.js';
 import { pigSVG } from './pig.js';
 import { onBack, onResume, exitApp, notifPermission, isNative } from './native.js';
@@ -193,7 +193,12 @@ async function boot() {
   initFriends();
   setPokeHandler((other) => friendsView.showPoke(other));
   fr.setBannerHandler((m) => showBanner(m));
-  const openFromNotif = async () => { const uid = await fr.takeOpenChat(); if (uid) { closeSheet(); go('chat', { uid }); } };
+  const openFromNotif = async () => {
+    const { uid, page } = await fr.takeOpenTarget();
+    if (uid) { closeSheet(); go('chat', { uid }); return; }
+    if (page === 'schedule') { closeSheet(); go('schedule', { view: 'day', date: dkey(new Date()) }); }
+    else if (page?.startsWith('tasks:')) { closeSheet(); go('tasks', { tab: page.slice(6) }); }
+  };
   onResume(openFromNotif); setTimeout(openFromNotif, 1500);
   onFriends(() => { if (['friends', 'home', 'me', 'settings'].includes(route.name)) refreshIfIdle(); });
   try { const inv = new URLSearchParams(location.search).get('invite'); if (inv) { sessionStorage.setItem('mochi-invite', inv); history.replaceState(null, '', location.pathname); setTimeout(() => go('friends'), 800); } } catch {}

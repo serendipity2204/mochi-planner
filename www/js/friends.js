@@ -114,8 +114,9 @@ export const syncNativeMessages = debounce(async () => {
     });
   } catch (e) { console.warn('native msgs', e); }
 }, 1500);
-export async function takeOpenChat() {
-  try { const r = await plug('MochiWidgets')?.takeOpenChat(); return r?.uid || null; } catch { return null; }
+/** What a tapped notification / home-screen widget asked to open: { uid, page } */
+export async function takeOpenTarget() {
+  try { const r = await plug('MochiWidgets')?.takeOpenChat(); return { uid: r?.uid || null, page: r?.page || null }; } catch { return { uid: null, page: null }; }
 }
 
 function watchFriend(uid, accepted) {

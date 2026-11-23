@@ -87,6 +87,9 @@ public final class WidgetData {
     static PendingIntent openApp(Context c, int requestCode) {
         Intent i = new Intent(c, MainActivity.class);
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        // Tell the app which page to open: 1 classes, 2 assignments, 3 to-dos, 4 exams
+        String[] pages = {"", "schedule", "tasks:asg", "tasks:todo", "tasks:exam"};
+        if (requestCode > 0 && requestCode < pages.length) i.putExtra("openPage", pages[requestCode]);
         return PendingIntent.getActivity(c, requestCode, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 

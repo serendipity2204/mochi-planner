@@ -7,6 +7,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     /** Friend uid from a tapped message notification; read by the web app via MochiWidgets.takeOpenChat. */
     static volatile String pendingChat = null;
+    /** Page from a tapped home-screen widget (e.g. "schedule", "tasks:asg"). */
+    static volatile String pendingPage = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -23,5 +25,6 @@ public class MainActivity extends BridgeActivity {
 
     private void readIntent(Intent i) {
         if (i != null && i.hasExtra("openChat")) { pendingChat = i.getStringExtra("openChat"); i.removeExtra("openChat"); }
+        if (i != null && i.hasExtra("openPage")) { pendingPage = i.getStringExtra("openPage"); i.removeExtra("openPage"); }
     }
 }

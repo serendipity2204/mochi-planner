@@ -111,7 +111,9 @@ public class WidgetBridgePlugin extends Plugin {
     public void takeOpenChat(PluginCall call) {
         JSObject r = new JSObject();
         r.put("uid", MainActivity.pendingChat);
+        r.put("page", MainActivity.pendingPage);
         MainActivity.pendingChat = null;
+        MainActivity.pendingPage = null;
         call.resolve(r);
     }
 
