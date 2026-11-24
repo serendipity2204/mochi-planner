@@ -41,7 +41,7 @@ const SECTIONS = {
   next() {
     const n = nextClass();
     if (!n) return `<div class="card next-card"><div class="muted small bold">${t('home.nextClass')}</div><div class="bold" style="font-size:1.15rem;margin-top:4px">${S().courses.length ? t('home.noMoreClasses') : t('home.noCourses')}</div>
-      ${S().courses.length ? '' : `<button class="btn sm" style="margin-top:10px;background:#fff;color:var(--primary)" data-act="course.add">＋ ${t('course.add')}</button>`}</div>`;
+      ${S().courses.length ? '' : `<button class="btn sm" style="margin-top:10px;background:#fff;color:var(--primary-ink)" data-act="course.add">＋ ${t('course.add')}</button>`}</div>`;
     const c = n.course;
     const ms = n.ongoing ? n.end - Date.now() : n.start - Date.now();
     return `<button class="card next-card" style="width:100%;text-align:left" data-act="course.open" data-id="${c.id}">
@@ -93,7 +93,7 @@ export function render() {
       <button class="icon-btn" data-act="nav" data-to="search" aria-label="${t('nav.search')}">🔍</button><button class="icon-btn" data-act="nav" data-to="settings" aria-label="${t('common.settings')}">⚙️</button></div>
     <div class="hero">
       <div class="pig-box" data-act="pig.poke">${pigSVG(pigProps({ size: 104, cls: 'pig-anim' }))}</div>
-      <div class="grow"><div class="date-big">${dateStr} <span style="color:var(--primary)">${weekdayLong(d.getDay())}</span></div>
+      <div class="grow"><div class="date-big">${dateStr} <span style="color:var(--primary-ink)">${weekdayLong(d.getDay())}</span></div>
         <div class="bubble" style="margin-top:8px;margin-left:8px" id="home-msg">${esc(moodMessage())}</div>
         <div class="tiny muted bold" style="margin:6px 0 0 10px">— ${esc(pigName())}</div></div>
     </div>

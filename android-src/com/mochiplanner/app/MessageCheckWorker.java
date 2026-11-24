@@ -240,7 +240,7 @@ public class MessageCheckWorker extends Worker {
             .setVibrate(VIBE).setDefaults(NotificationCompat.DEFAULT_SOUND)
             .setSmallIcon(icon).setContentTitle(title).setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-            .setColor(0xFFEC6F9B).setAutoCancel(true).setContentIntent(pi)
+            .setColor(0xFFD9A33A).setAutoCancel(true).setContentIntent(pi)
             .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_MESSAGE);
         try { NotificationManagerCompat.from(ctx).notify(id, b.build()); } catch (SecurityException ignored) { }
     }

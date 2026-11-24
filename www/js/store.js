@@ -36,7 +36,7 @@ export function defaultSettings() {
   return {
     lang: zh ? 'zh' : 'en',
     onboarded: false,
-    appearance: { mode: 'system', color: 'pink', fontScale: 1 },
+    appearance: { mode: 'system', color: 'honey', fontScale: 1 },
     home: { sections: ['next', 'today', 'friends', 'focus', 'assignments', 'exams', 'todos'], hidden: [] },
     pig: { acc: 'bow', expr: 'happy', name: '' },
     notif: {

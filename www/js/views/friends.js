@@ -19,7 +19,7 @@ const avatar = (a, size = 46) => `<div class="avatar" style="width:${size}px;hei
 export function statusLine(uidv) {
   const s = fr.friendStatus(uidv);
   if (s.state === 'hidden') return `<span class="muted">${t('friends.st.hidden')}</span>`;
-  if (s.state === 'inClass') return `<b style="color:var(--primary)">📚 ${t('friends.st.inClass')}</b> · ${esc(s.course.code || s.course.name)} ${t('friends.until', { t: fmtTime(s.course.end) })}`;
+  if (s.state === 'inClass') return `<b style="color:var(--primary-ink)">📚 ${t('friends.st.inClass')}</b> · ${esc(s.course.code || s.course.name)} ${t('friends.until', { t: fmtTime(s.course.end) })}`;
   if (s.state === 'free') return `<b style="color:var(--green)">☕ ${t('friends.st.free')}</b> · ${t('friends.nextAt', { t: fmtTime(s.next.start), c: esc(s.next.code || s.next.name) })}`;
   if (s.state === 'done') return `<span class="muted">🌙 ${t('friends.st.done')}</span>`;
   return `<span class="muted">🎈 ${t('friends.st.noClass')}</span>`;
@@ -40,7 +40,7 @@ export function renderFriends() {
   return `<div class="page"><div class="topbar"><button class="back" data-act="back">‹</button><h1>${t('friends.title')}</h1><button class="icon-btn" data-act="friends.settings" aria-label="${t('common.settings')}">⚙️</button></div>
     <div class="grid-2">
       <div class="card"><div class="card-title">🎟️ ${t('friends.myCode')}</div>
-        <div class="row"><div class="grow" style="font-size:2rem;font-weight:900;letter-spacing:6px;color:var(--primary)">${esc(code)}</div>
+        <div class="row"><div class="grow" style="font-size:2rem;font-weight:900;letter-spacing:6px;color:var(--primary-ink)">${esc(code)}</div>
         <button class="btn sm" data-act="friends.copy">📋 ${t('friends.copy')}</button></div>
         <button class="btn primary block" style="margin-top:10px" data-act="friends.share">📤 ${t('friends.invite')}</button></div>
       <form class="card" id="add-friend"><div class="card-title">➕ ${t('friends.add')}</div>
@@ -335,7 +335,7 @@ on({
     closeSheet();
     const sh = openSheet(`${sheetHead('🧹 ' + t('chat.clear'))}
       <p style="margin:0 0 14px;line-height:1.5">${t('chat.clearMsg', { name: esc(fr.nameOf(other)) })}</p>
-      <label class="set-row" style="border-radius:16px;background:var(--card-2);margin-bottom:14px"><span class="label">${t('chat.clearMine')}<small>${t('chat.clearMineSub')}</small></span><input type="checkbox" id="clear-mine" style="width:22px;height:22px;accent-color:var(--primary)"></label>
+      <label class="set-row" style="border-radius:16px;background:var(--card-2);margin-bottom:14px"><span class="label">${t('chat.clearMine')}<small>${t('chat.clearMineSub')}</small></span><input type="checkbox" id="clear-mine" style="width:22px;height:22px;accent-color:var(--primary-ink)"></label>
       <div class="sheet-actions"><button class="btn" data-act="sheet.close">${t('common.cancel')}</button><button class="btn danger" id="clear-go">${t('chat.clearBtn')}</button></div>`);
     sh.querySelector('#clear-go').addEventListener('click', async (e) => {
       e.target.disabled = true;

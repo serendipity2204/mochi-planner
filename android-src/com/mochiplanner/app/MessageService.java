@@ -86,7 +86,7 @@ public class MessageService extends Service {
         if (icon == 0) icon = getApplicationInfo().icon;
         return new NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(icon).setContentTitle(title).setContentText(text)
-            .setOngoing(true).setShowWhen(false).setColor(0xFFEC6F9B)
+            .setOngoing(true).setShowWhen(false).setColor(0xFFD9A33A)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setContentIntent(PendingIntent.getActivity(this, 7303, open, flags))
             .build();

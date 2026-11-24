@@ -129,7 +129,7 @@ function passwordSheet(title, fields, onSubmit) {
 const BUILDERS = {
   language() {
     const s = set();
-    return `<div class="set-group">${[['zh', '简体中文', 'Simplified Chinese'], ['en', 'English', '英文']].map(([v, a, b]) => `<button class="set-row" data-act="set.lang" data-v="${v}"><span class="ic">${v === 'zh' ? '🇨🇳' : '🇬🇧'}</span><span class="label">${a}<small>${b}</small></span>${s.lang === v ? '<b style="color:var(--primary);font-size:1.3rem">✓</b>' : ''}</button>`).join('')}</div>
+    return `<div class="set-group">${[['zh', '简体中文', 'Simplified Chinese'], ['en', 'English', '英文']].map(([v, a, b]) => `<button class="set-row" data-act="set.lang" data-v="${v}"><span class="ic">${v === 'zh' ? '🇨🇳' : '🇬🇧'}</span><span class="label">${a}<small>${b}</small></span>${s.lang === v ? '<b style="color:var(--primary-ink);font-size:1.3rem">✓</b>' : ''}</button>`).join('')}</div>
       <p class="small muted" style="margin:0 6px">${t('set.langNote')}</p>`;
   },
   account() {
@@ -174,12 +174,12 @@ const BUILDERS = {
   },
   appearance() {
     const a = set().appearance;
-    const colors = { pink: '#EC6C9C', peach: '#F08A5D', lavender: '#9C7BD8', mint: '#34B08A', sky: '#4A9FE0' };
+    const colors = { honey: '#F3C760', pink: '#EC6C9C', peach: '#F08A5D', lavender: '#9C7BD8', mint: '#34B08A', sky: '#4A9FE0' };
     const h = set().home;
     const order = [...h.sections, ...SECTION_IDS.filter((s) => !h.sections.includes(s))].filter((s) => SECTION_IDS.includes(s));
     return `${group(t('set.themeMode'), [`<div style="padding:12px"><div class="seg">${['light', 'dark', 'system'].map((m) => `<button class="${a.mode === m ? 'on' : ''}" data-act="set.mode" data-v="${m}">${t('set.mode.' + m)}</button>`).join('')}</div></div>`])}
       ${group(t('set.themeColor'), [`<div class="row wrap" style="padding:14px;gap:14px">${Object.entries(colors).map(([k, c]) => `<button data-act="set.color" data-v="${k}" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.75rem;font-weight:800"><span style="width:42px;height:42px;border-radius:50%;background:${c};border:4px solid ${a.color === k ? 'var(--text)' : 'var(--card)'};box-shadow:var(--shadow-sm)"></span>${t('color.' + k)}</button>`).join('')}</div>`])}
-      ${group(t('set.fontSize'), [`<div style="padding:14px"><div class="row"><span class="small">A</span><input type="range" min="0.85" max="1.3" step="0.05" value="${a.fontScale}" data-set="appearance.fontScale" data-type="num" class="grow" style="accent-color:var(--primary)"><span style="font-size:1.3rem">A</span></div><div class="center small muted" style="margin-top:6px">${Math.round(a.fontScale * 100)}%</div></div>`])}
+      ${group(t('set.fontSize'), [`<div style="padding:14px"><div class="row"><span class="small">A</span><input type="range" min="0.85" max="1.3" step="0.05" value="${a.fontScale}" data-set="appearance.fontScale" data-type="num" class="grow" style="accent-color:var(--primary-ink)"><span style="font-size:1.3rem">A</span></div><div class="center small muted" style="margin-top:6px">${Math.round(a.fontScale * 100)}%</div></div>`])}
       ${group(t('set.homeLayout'), order.map((s, i) => `<div class="set-row"><span class="label">${t('home.sec.' + s)}</span><button class="btn sm ghost" data-act="home.move" data-s="${s}" data-d="-1" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn sm ghost" data-act="home.move" data-s="${s}" data-d="1" ${i === order.length - 1 ? 'disabled' : ''}>↓</button>${toggle(`data-act-change="home.toggle" data-s="${s}"`, !h.hidden.includes(s))}</div>`))}
       ${group(t('set.pig'), [btnRow('👗', t('pig.wardrobe'), 'pig.wardrobe', t('set.pigSub'))])}`;
   },
@@ -255,7 +255,7 @@ const BUILDERS = {
         isNative() && f.notify ? row('⚡', t('friends.instant'), sw('friends.instant', f.instant), t('friends.instantSub')) : '',
         !isNative() && f.notify && push.pushConfigured() ? pushRow() : '',
       ])}
-      ${f.shareTimetable && courses.length ? `<div class="set-group-title">${t('friends.whichCourses')}</div><div class="set-group">${courses.map((c) => `<label class="set-row"><span class="dot" style="background:${esc(c.color || '#EC6C9C')}"></span><span class="label">${esc(c.name)}<small>${esc(c.code || '')}</small></span><input type="checkbox" class="share-course" data-id="${c.id}" ${sel.includes(c.id) ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary)"></label>`).join('')}</div>` : ''}
+      ${f.shareTimetable && courses.length ? `<div class="set-group-title">${t('friends.whichCourses')}</div><div class="set-group">${courses.map((c) => `<label class="set-row"><span class="dot" style="background:${esc(c.color || '#EC6C9C')}"></span><span class="label">${esc(c.name)}<small>${esc(c.code || '')}</small></span><input type="checkbox" class="share-course" data-id="${c.id}" ${sel.includes(c.id) ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary-ink)"></label>`).join('')}</div>` : ''}
       ${fr.state.friends.length ? `<div class="set-group-title">${t('friends.manage')}</div><div class="set-group">${fr.state.friends.map((x) => `<div class="set-row"><span class="label">${esc(fr.nameOf(x.other))}</span><button class="btn sm danger" data-act="friends.disconnect" data-uid="${x.other}">${t('friends.disconnect')}</button></div>`).join('')}</div>` : ''}
       <p class="small muted" style="margin:0 6px">${t('friends.privacyNote')}</p>`;
   },
@@ -273,11 +273,13 @@ const BUILDERS = {
 // ---------- apply ----------
 export function applyAppearance() {
   const a = set().appearance;
+  // v0.4 look: move everyone on the old default (pink) to the new cream & honey theme once
+  if (!a.lookV) { if (a.color === 'pink') a.color = 'honey'; a.lookV = 2; setTimeout(() => commit('settings'), 0); }
   const dark = a.mode === 'dark' || (a.mode === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.documentElement.dataset.color = a.color;
   document.documentElement.style.setProperty('--fs', a.fontScale);
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#1C1518' : '#FFE9F1');
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || (dark ? '#1C1518' : '#FFE9F1'));
 }
 
 function getPath(path) { const [root, ...rest] = path.split('.'); let o = root === 'profile' ? S().profile : set()[root]; for (const k of rest.slice(0, -1)) o = o[k]; return [o, rest[rest.length - 1]]; }

@@ -85,7 +85,7 @@ function durationEditor(mode) {
       <button class="dur-val" data-act="dur.custom"><b>${v}</b> ${t('unit.minShort')} ✏️</button>
       <button class="icon-btn" data-act="dur.step" data-d="1" aria-label="+">＋</button></div>
     <div class="chips" style="justify-content:center;flex-wrap:wrap">${PRESETS[mode].map((m) => `<button class="chip ${m === v ? 'on' : ''}" data-act="dur.set" data-v="${m}">${m} ${t('unit.minShort')}</button>`).join('')}</div>
-    <div class="center tiny muted">${t('focus.durSummary', { f: f.focus, s: f.short, l: f.long, n: f.longEvery })} · <button class="link" style="color:var(--primary);font-weight:800" data-act="timer.settings">${t('focus.moreSettings')}</button></div>`;
+    <div class="center tiny muted">${t('focus.durSummary', { f: f.focus, s: f.short, l: f.long, n: f.longEvery })} · <button class="link" style="color:var(--primary-ink);font-weight:800" data-act="timer.settings">${t('focus.moreSettings')}</button></div>`;
 }
 function setDuration(v) {
   const tm = S().timer, [lo, hi] = LIMITS[tm.mode];

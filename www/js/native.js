@@ -87,7 +87,7 @@ export async function scheduleNotifications(items, sound, channelNames = {}) {
       await LN.schedule({
         notifications: future.map((n) => ({
           id: n.id, title: n.title, body: n.body, schedule: { at: new Date(n.at), allowWhileIdle: true },
-          channelId: 'mochi_' + (sound || 'chime'), smallIcon: 'ic_stat_mochi', iconColor: '#EC6C9C', extra: n.extra || null,
+          channelId: 'mochi_' + (sound || 'chime'), smallIcon: 'ic_stat_mochi', iconColor: '#D9A33A', extra: n.extra || null,
         })),
       });
     } catch (e) { console.warn('schedule failed', e); }
