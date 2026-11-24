@@ -279,6 +279,7 @@ export function applyAppearance() {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.documentElement.dataset.color = a.color;
   document.documentElement.style.setProperty('--fs', a.fontScale);
+  try { pushWidgets(); } catch {}
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || (dark ? '#1C1518' : '#FFE9F1'));
 }
 

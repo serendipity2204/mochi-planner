@@ -7,6 +7,19 @@ import { parseDate } from './utils.js';
 import { plug, isNative } from './native.js';
 import { pigSVG } from './pig.js';
 
+// The app's current colours (theme colour + light/dark), so home-screen widgets match the app
+function themeColors() {
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const hex = (name, fb) => { const v = cs.getPropertyValue(name).trim(); return /^#[0-9a-f]{6}$/i.test(v) ? v : fb; };
+    return {
+      bg: hex('--primary-3', '#FFF0F5'), text: hex('--text', '#4A3540'), muted: hex('--muted', '#9B8790'),
+      accent: hex('--primary', '#EC6C9C'), ink: hex('--primary-ink', hex('--primary', '#EC6C9C')),
+      dark: document.documentElement.dataset.theme === 'dark',
+    };
+  } catch { return null; }
+}
+
 export function widgetData() {
   const today = startOfDay(new Date());
   const classes = {};
@@ -25,7 +38,7 @@ export function widgetData() {
     w: `${fmtDate(e.date, { short: true })} ${fmtTime(e.time || '09:00')}${e.location ? ' · ' + e.location : ''}`,
   }));
   return {
-    v: 1, updated: Date.now(), lang: lang(), timeFmt: store.state.settings.cal.timeFmt,
+    v: 1, updated: Date.now(), lang: lang(), timeFmt: store.state.settings.cal.timeFmt, theme: themeColors(),
     wd: [0, 1, 2, 3, 4, 5, 6].map(weekdayShort), mon: [...Array(12).keys()].map((m) => t('mon.' + m).slice(0, 3)),
     labels: {
       today: t('widget.today'), asg: t('widget.asg'), noClass: t('widget.noClass'), noAsg: t('widget.noAsg'),

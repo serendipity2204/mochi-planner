@@ -25,12 +25,16 @@ public final class WidgetData {
     static final int[] TITLES = { R.id.title0, R.id.title1, R.id.title2, R.id.title3, R.id.title4 };
     static final int[] SUBS = { R.id.sub0, R.id.sub1, R.id.sub2, R.id.sub3, R.id.sub4 };
     static final int[] RIGHTS = { R.id.right0, R.id.right1, R.id.right2, R.id.right3, R.id.right4 };
-    static final int TEXT = 0xFF4A3540;
-    static final int MUTED = 0xFFA08890;
+    // Theme colours (follow the app's colour theme / dark mode; see theme())
+    static int TEXT = 0xFF4A3540;
+    static int MUTED = 0xFFA08890;
+    static int INK = 0xFFEC6C9C;
+    static int BG = 0xFFFFF0F5;
+    static boolean DARK = false;
     static final int RED = 0xFFF26D6D;
     static final int YELLOW = 0xFFF2B33D;
     static final int GREEN = 0xFF45BF86;
-    static final int PINK = 0xFFEC6C9C;
+    static int PINK = 0xFFEC6C9C; // accent (bars)
 
     private WidgetData() {}
 
@@ -103,8 +107,26 @@ public final class WidgetData {
         return (wds + " " + day + " " + (mo != null ? mo.optString(m, "") : "")).trim();
     }
 
+    static void theme(JSONObject d) {
+        JSONObject t = d == null ? null : d.optJSONObject("theme");
+        TEXT = color(t == null ? null : t.optString("text"), 0xFF4A3540);
+        MUTED = color(t == null ? null : t.optString("muted"), 0xFFA08890);
+        PINK = color(t == null ? null : t.optString("accent"), 0xFFEC6C9C);
+        INK = color(t == null ? null : t.optString("ink"), PINK);
+        BG = color(t == null ? null : t.optString("bg"), 0xFFFFF0F5);
+        DARK = t != null && t.optBoolean("dark", false);
+    }
+
     static RemoteViews base(Context c, String title, JSONObject d, int requestCode) {
+        theme(d);
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_list);
+        v.setInt(R.id.w_bg, "setColorFilter", BG);
+        v.setTextColor(R.id.w_title, TEXT);
+        v.setTextColor(R.id.w_date, INK);
+        v.setTextColor(R.id.w_empty, MUTED);
+        v.setTextColor(R.id.w_more, INK);
+        for (int r : ROWS) v.setInt(r, "setBackgroundResource", DARK ? R.drawable.widget_row_dark : R.drawable.widget_row);
+        for (int i = 0; i < ROWS.length; i++) v.setTextColor(SUBS[i], MUTED);
         v.setTextViewText(R.id.w_title, title);
         v.setTextViewText(R.id.w_date, header(d));
         v.setOnClickPendingIntent(R.id.w_root, openApp(c, requestCode));
@@ -183,9 +205,9 @@ public final class WidgetData {
             boolean live = toMin(s) <= nm && !past;
             if (!past) allDone = false;
             v.setViewVisibility(ROWS[i], View.VISIBLE);
-            v.setInt(BARS[i], "setBackgroundColor", past ? 0xFFE0D0D6 : color(o.optString("col"), PINK));
+            v.setInt(BARS[i], "setBackgroundColor", past ? (DARK ? 0x33FFFFFF : 0x22000000) : color(o.optString("col"), PINK));
             v.setTextViewText(TITLES[i], (live ? "▶ " : "") + o.optString("n"));
-            v.setTextColor(TITLES[i], past ? MUTED : (live ? PINK : TEXT));
+            v.setTextColor(TITLES[i], past ? MUTED : (live ? INK : TEXT));
             v.setTextViewText(SUBS[i], join(o.optString("c"), o.optString("l")));
             v.setTextViewText(RIGHTS[i], fmtTime(d, s) + "\n" + fmtTime(d, e));
             v.setTextColor(RIGHTS[i], past ? MUTED : TEXT);
@@ -315,7 +337,7 @@ public final class WidgetData {
             v.setTextViewText(SUBS[i], o.optString("w"));
             String right = n <= 0 ? label(d, "todayShort", "Today") : label(d, "examDays", "%d days").replace("%d", String.valueOf(n));
             v.setTextViewText(RIGHTS[i], right);
-            v.setTextColor(RIGHTS[i], n <= 3 ? RED : PINK);
+            v.setTextColor(RIGHTS[i], n <= 3 ? RED : INK);
         }
         if (list.size() > shown) {
             v.setTextViewText(R.id.w_more, label(d, "more", "+%d more").replace("%d", String.valueOf(list.size() - shown)));

@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Shared layout for the Mochi home-screen widgets -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@drawable/widget_bg" android:orientation="vertical" android:padding="12dp">
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent">
+    <!-- background shape, tinted to the app's theme colour at runtime -->
+    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/widget_bg_white" android:contentDescription="@null" />
+<LinearLayout android:id="@+id/w_content" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="12dp">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:gravity="center_vertical" android:orientation="horizontal">
         <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/widget_pig"
@@ -90,3 +94,4 @@
         android:gravity="center" android:paddingTop="6dp" android:textColor="#EC6C9C" android:textSize="11sp"
         android:visibility="gone" />
 </LinearLayout>
+</FrameLayout>
