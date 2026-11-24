@@ -68,8 +68,8 @@ export function defaultState() {
       house: 'cottage', houses: ['cottage'], walls: ['cream', 'pinkstripe'], floors: ['wood'],
       owned: { window: 1, plant: 1, bed: 1, lamp: 1 },
       rooms: {
-        living: { wall: 'cream', floor: 'wood', items: [{ uid: 'st-window', id: 'window', x: 50, y: 40, s: 1, f: false }, { uid: 'st-plant', id: 'plant', x: 16, y: 90, s: 1, f: false }] },
-        bedroom: { wall: 'pinkstripe', floor: 'wood', items: [{ uid: 'st-bed', id: 'bed', x: 58, y: 92, s: 1, f: false }, { uid: 'st-lamp', id: 'lamp', x: 16, y: 90, s: 1, f: false }] },
+        living: { wall: 'cream', floor: 'wood', items: [{ uid: 'st-window', id: 'window', x: 73.8, y: 24.3, s: 1, f: false }, { uid: 'st-plant', id: 'plant', x: 17.5, y: 59.2, s: 1, f: false }] },
+        bedroom: { wall: 'pinkstripe', floor: 'wood', items: [{ uid: 'st-bed', id: 'bed', x: 63, y: 55.5, s: 1, f: false }, { uid: 'st-lamp', id: 'lamp', x: 47.8, y: 41.8, s: 1, f: false }] },
       },
     },
   };
