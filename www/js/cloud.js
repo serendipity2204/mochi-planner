@@ -1,7 +1,8 @@
 // Cloud account & sync (Firebase Auth + Firestore), loaded on demand from the official CDN.
 // Data model: users/{uid} = { data: JSON(state), clientTime, device, updatedAt, size }
 //             users/{uid}/backups/{id} = { data, createdAt, device, size }
-import { store, commit, replaceState, flush, snapshot, defaultState } from './store.js';
+import { store, commit, replaceState, flush, snapshot, defaultState, kvGet, kvPut } from './store.js';
+import { mergeAppStates } from './syncmerge.js';
 import { FIREBASE_CONFIG, FIREBASE_SDK_VERSION } from './firebase-config.js';
 import { isNative, plug } from './native.js';
 import { uid as newId, debounce } from './utils.js';
@@ -97,26 +98,65 @@ export function mergeStates(remote, local) {
   return out;
 }
 
+// ---------- multi-device merge ----------
+// "base" = what this device and the cloud last agreed on. Comparing base, this device and the cloud
+// tells us what each side changed, so edits made on two devices at the same time are combined.
+let base = null, baseUid = null;
+async function getBase() {
+  const u = status.user?.uid;
+  if (!u) return null;
+  if (baseUid !== u) { baseUid = u; try { base = (await kvGet('syncBase:' + u)) || null; } catch { base = null; } }
+  return base;
+}
+async function setBase(obj) {
+  const u = status.user?.uid;
+  if (!u || !obj) return;
+  base = JSON.parse(JSON.stringify(obj)); baseUid = u;
+  try { await kvPut('syncBase:' + u, base); } catch {}
+}
+function mergeWithRemote(remote, remoteTime) {
+  const local = syncable();
+  const preferLocal = (C().localChange || 0) >= (remoteTime || 0);
+  return base ? mergeAppStates(base, local, remote, preferLocal) : mergeStates(remote, local);
+}
+
 async function applyRemote(data, clientTime) {
   await replaceState(data, 'remote', keepDeviceKeys);
   Object.assign(C(), { lastRemote: clientTime || Date.now(), lastSync: Date.now(), localChange: 0 });
   await flush();
+  await setBase(data);
 }
 
 // ---------- upload / download ----------
 let uploading = false, again = false;
-async function upload() {
+/** Upload this device's data. Unless force, anything another device saved meanwhile is merged in first. */
+async function upload({ force = false } = {}) {
   if (!fb || !status.user) return;
   if (uploading) { again = true; return; }
   uploading = true;
   status.state = 'syncing'; emit();
   try {
     const { F, db } = fb;
-    const data = JSON.stringify(syncable());
-    if (data.length > 950000) throw Object.assign(new Error('tooLarge'), { code: 'tooLarge' });
-    const clientTime = Date.now();
-    await F.setDoc(F.doc(db, 'users', status.user.uid), { data, clientTime, device: C().deviceId, size: data.length, app: 'mochi-planner', v: 1, updatedAt: F.serverTimestamp() });
-    Object.assign(C(), { lastSync: Date.now(), lastRemote: clientTime, localChange: 0, size: data.length });
+    const ref = F.doc(db, 'users', status.user.uid);
+    await getBase();
+    let out = null, merged = false, clientTime = 0;
+    const write = async (snap, set) => {
+      let state = syncable(); merged = false;
+      if (!force && snap.exists()) {
+        const d = snap.data();
+        if ((d.clientTime || 0) > (C().lastRemote || 0) && d.data) { state = mergeWithRemote(JSON.parse(d.data), d.clientTime); merged = true; }
+      }
+      out = JSON.stringify(state);
+      if (out.length > 950000) throw Object.assign(new Error('tooLarge'), { code: 'tooLarge' });
+      clientTime = Date.now();
+      await set({ data: out, clientTime, device: C().deviceId, size: out.length, app: 'mochi-planner', v: 1, updatedAt: F.serverTimestamp() });
+    };
+    if (F.runTransaction) await F.runTransaction(db, async (tx) => write(await tx.get(ref), async (doc) => tx.set(ref, doc)));
+    else await write(await F.getDoc(ref), (doc) => F.setDoc(ref, doc));
+    const state = JSON.parse(out);
+    if (merged) await replaceState(state, 'remote', keepDeviceKeys);
+    await setBase(state);
+    Object.assign(C(), { lastSync: Date.now(), lastRemote: clientTime, localChange: 0, size: out.length });
     commit('cloud-meta');
     status.state = 'synced'; status.error = null;
   } catch (e) {
@@ -139,19 +179,19 @@ async function initialSync(firstTime) {
   const remote = JSON.parse(d.data || '{}');
   if (firstTime) {
     const choice = hasLocalData() ? await conflictResolver(remote) : 'cloud';
-    if (choice === 'local') return upload();
+    if (choice === 'local') return upload({ force: true });
     if (choice === 'merge') { await applyRemote(mergeStates(remote, syncable()), d.clientTime); return upload(); }
     return applyRemote(remote, d.clientTime);
   }
   await reconcile(d);
 }
 
-// Decide between remote and local copies (last change wins)
+// Another device saved: take its copy, or merge it with our unsynced changes
 async function reconcile(d) {
-  const remoteNewer = (d.clientTime || 0) > (C().lastRemote || 0) && d.device !== C().deviceId;
+  const remoteNewer = (d.clientTime || 0) > (C().lastRemote || 0);
   const localDirty = (C().localChange || 0) > (C().lastSync || 0);
-  if (remoteNewer && (!localDirty || d.clientTime > C().localChange)) return applyRemote(JSON.parse(d.data), d.clientTime);
-  if (localDirty) return upload();
+  if (remoteNewer && !localDirty) return applyRemote(JSON.parse(d.data), d.clientTime);
+  if (localDirty || remoteNewer) return upload(); // upload() merges both sides
 }
 
 function startListener() {
@@ -231,9 +271,9 @@ export const syncNow = wrap(async () => {
   const snap = await F.getDoc(F.doc(db, 'users', status.user.uid));
   if (snap.exists()) {
     const d = snap.data();
-    const remoteNewer = (d.clientTime || 0) > (C().lastRemote || 0) && d.device !== C().deviceId;
+    const remoteNewer = (d.clientTime || 0) > (C().lastRemote || 0);
     const localDirty = (C().localChange || 0) > (C().lastSync || 0);
-    if (remoteNewer && (!localDirty || d.clientTime > C().localChange)) await applyRemote(JSON.parse(d.data), d.clientTime);
+    if (remoteNewer && !localDirty) await applyRemote(JSON.parse(d.data), d.clientTime);
     else await upload();
   } else await upload();
   status.state = 'synced'; status.remoteNewer = false; emit();
@@ -336,7 +376,7 @@ export const resetAccountData = wrap(async () => {
   try { await snapshot('before-reset'); } catch {}
   await replaceState(freshStateFor(status.user), 'remote', keepDeviceKeys);
   C().localChange = Date.now();
-  await upload();
+  await upload({ force: true });
 });
 
 // ---------- cloud backups ----------
@@ -365,5 +405,5 @@ export const restoreCloudBackup = wrap(async (id) => {
   const d = await F.getDoc(F.doc(db, 'users', status.user.uid, 'backups', id));
   if (!d.exists()) throw new Error('notFound');
   await replaceState(JSON.parse(d.data().data), 'restore', keepDeviceKeys);
-  await upload();
+  await upload({ force: true });
 });
