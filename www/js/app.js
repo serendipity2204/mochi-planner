@@ -37,7 +37,7 @@ const ROUTES = {
   about: { render: me.renderAbout },
 };
 // Phone: 4 tabs with the ＋ in the middle; "Me" is the avatar on Home (and a sidebar item on tablets)
-const TABS = [['home', '🏠'], ['schedule', '📅'], ['plus'], ['tasks', '📝'], ['focus', '⏱️'], ['me', '🐷', true]];
+const TABS = [['home', '🏠'], ['schedule', '📅'], ['plus'], ['tasks', '📋'], ['focus', '⏱️'], ['me', '🐷', true]];
 
 let route = { name: 'home', params: {} };
 const stack = [];

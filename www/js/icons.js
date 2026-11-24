@@ -14,7 +14,9 @@ const I = {
   mic: `<rect ${F} x="8.8" y="3.2" width="6.4" height="11" rx="3.2"/><path d="M5.8 11.2a6.2 6.2 0 0 0 12.4 0M12 17.4v3.2M9 20.6h6"/>`,
   camera: `<rect ${F} x="3.4" y="7" width="17.2" height="12.8" rx="3.8"/><path d="M8.4 7l1.4-2.6h4.4L15.6 7"/><circle cx="12" cy="13.3" r="3.3" fill="var(--card)"/><circle cx="17.4" cy="10" r=".7" fill="currentColor" stroke="none"/>`,
   bell: `<path ${F} d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6Z"/><path d="M10 20.4a2.1 2.1 0 0 0 4 0M12 3.2v1.9"/>`,
-  books: `<rect ${F} x="4" y="12.6" width="16" height="7" rx="2"/><rect x="5.6" y="5.2" width="12.8" height="7.4" rx="2" fill="var(--card)"/><path d="M8.6 5.2v7.4M7.4 16.1h9.2"/>`,
+  books: `<rect ${F} x="3.6" y="5.4" width="4.8" height="14.6" rx="1.3"/><path d="M3.6 8.6h4.8M3.6 16.6h4.8"/><rect x="9.6" y="3.6" width="4.6" height="16.4" rx="1.3" fill="var(--card)"/><path d="M11.9 7v3.4"/><path ${F} d="m15.4 6.4 3.6-1 3.6 13.8-3.6 1Z"/><path d="M2.6 20.4h18.8"/>`,
+  homework: `<path ${F} d="M6.4 3.6h8.4l3.6 3.6v6.4M18.4 17.6v.8a2 2 0 0 1-2 2H6.4a2 2 0 0 1-2-2V5.6a2 2 0 0 1 2-2"/><path d="M8 9h6M8 12.4h3.6"/><path d="M20.6 10.6a1.4 1.4 0 0 1 2 2l-6.2 6.2-2.8.8.8-2.8Z" fill="var(--card)"/>`,
+  checklist: `<rect ${F} x="3.8" y="3.8" width="16.4" height="16.4" rx="4.6"/><path d="M8 12.2l2.8 2.8 5.4-5.8" stroke-width="2.3"/>`,
   dress: `<path ${F} d="M9.2 3.6 8 8.6l1.8 1.6L5.6 20h12.8l-4.2-9.8L16 8.6l-1.2-5"/><path d="M9.2 3.6c.8 1.2 4.8 1.2 5.6 0"/>`,
   close: `<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke-width="2.4"/>`,
   dots: `<circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/>`,
@@ -44,16 +46,19 @@ const I = {
   key: `<circle ${F} cx="8" cy="14.6" r="4"/><path d="M10.8 11.8 19 3.6M16.6 6l2.4 2.4M14.4 8.2l1.8 1.8"/>`,
   phone: `<rect ${F} x="6.6" y="2.8" width="10.8" height="18.4" rx="3"/><path d="M10.6 18h2.8"/>`,
   ticket: `<path ${F} d="M3.6 8.2a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v1.6a2.2 2.2 0 0 0 0 4.4v1.6a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6v-1.6a2.2 2.2 0 0 0 0-4.4Z"/><path d="M14.2 6.6v10.8" stroke-dasharray="1.6 1.8"/>`,
+  target: `<circle ${F} cx="11" cy="13" r="7.6"/><circle cx="11" cy="13" r="4.2" fill="var(--card)"/><circle cx="11" cy="13" r="1.4" fill="currentColor" stroke="none"/><path d="M11 13 19.2 4.8M16.6 4.4l2.6.4.4 2.6"/>`,
+  pencil: `<path ${F} d="M15.4 4.6a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L9 19l-4.4 1 1-4.4Z"/><path d="M13.6 6.4l4 4"/>`,
+  play: `<path ${F} d="M8 5.6v12.8a1 1 0 0 0 1.5.9l10-6.4a1 1 0 0 0 0-1.8l-10-6.4A1 1 0 0 0 8 5.6Z"/>`,
   rocket: `<path ${F} d="M12 3.2c3.2 2.2 4.6 5.4 4.2 9.4l-1.8 3.2H9.6l-1.8-3.2C7.4 8.6 8.8 5.4 12 3.2Z"/><circle cx="12" cy="9.6" r="1.6" fill="var(--card)"/><path d="M7.8 12.6 5 15.4l2.8.8M16.2 12.6l2.8 2.8-2.8.8M10.6 18.6 12 21l1.4-2.4"/>`,
 };
 
 // emoji (without variation selector) -> icon
 const EMOJI = {
-  '🏠': 'home', '📅': 'calendar', '📆': 'calendar', '🗓': 'calendar', '＋': 'plus', '+': 'plus', '➕': 'plus', '📝': 'tasks', '⏱': 'timer', '🍅': 'timer', '🐷': 'pig',
+  '🏠': 'home', '📅': 'calendar', '📆': 'calendar', '🗓': 'calendar', '＋': 'plus', '+': 'plus', '➕': 'plus', '📝': 'homework', '📋': 'tasks', '⏱': 'timer', '🍅': 'timer', '🐷': 'pig',
   '⚙': 'gear', '🔍': 'search', '🎤': 'mic', '📷': 'camera', '🔔': 'bell', '📚': 'books', '📖': 'books', '👗': 'dress', '✕': 'close', '⋯': 'dots',
   '‹': 'back', '›': 'fwd', '−': 'minus', '➤': 'send', '💬': 'chat', '👫': 'friends', '☁': 'cloud', '🔒': 'lock', '🔊': 'sound', '💡': 'bulb',
   'ℹ': 'info', '🎨': 'palette', '🌐': 'globe', '🧩': 'widget', '📊': 'stats', '⏰': 'alarm', '👤': 'user', '🔄': 'refresh', '🗒': 'note', '📒': 'note',
-  '🔥': 'fire', '🏷': 'tag', '✨': 'sparkle', '🌙': 'moon', '🔑': 'key', '📱': 'phone', '📲': 'phone', '🎟': 'ticket', '🚀': 'rocket', '✅': 'tasks', '☑': 'tasks', '🗂': 'note', '📦': 'cloud', '💾': 'cloud', '👀': 'search', '👁': 'search', '🎵': 'sound', '📳': 'phone', '📣': 'bell', '🕒': 'alarm', '🕐': 'alarm',
+  '🔥': 'fire', '🏷': 'tag', '✨': 'sparkle', '🌙': 'moon', '🔑': 'key', '📱': 'phone', '📲': 'phone', '🎟': 'ticket', '🚀': 'rocket', '🎯': 'target', '✏': 'pencil', '▶': 'play', '✅': 'checklist', '☑': 'checklist', '🗂': 'note', '📦': 'cloud', '💾': 'cloud', '👀': 'search', '👁': 'search', '🎵': 'sound', '📳': 'phone', '📣': 'bell', '🕒': 'alarm', '🕐': 'alarm',
 };
 
 export function icon(name, size = 22) {
@@ -84,7 +89,8 @@ export function peekPig() {
 }
 
 // ---------- swap emoji for icons in the places that act as icons ----------
-const SINGLE = '.nav-item .ni, .icon-btn, .topbar .back, .set-row > .ic, .tile .ti, .nav-plus';
+const SINGLE = '.nav-item .ni, .icon-btn, .topbar .back, .set-row > .ic, .tile .ti, .nav-plus, .quick-grid button > span';
+const LEADING = '.card-title, .set-group-title, .btn';
 function swapWhole(el) {
   if (el.dataset.iconified) return;
   if (el.children.length && !(el.children.length === 1 && el.firstElementChild.classList.contains('badge'))) return;
@@ -93,7 +99,7 @@ function swapWhole(el) {
   if (!name) return;
   el.dataset.iconified = '1';
   [...el.childNodes].filter((n) => n.nodeType === 3).forEach((n) => n.remove());
-  el.insertAdjacentHTML('afterbegin', icon(name, el.classList.contains('nav-plus') ? 30 : 22));
+  el.insertAdjacentHTML('afterbegin', icon(name, el.classList.contains('nav-plus') ? 30 : el.closest('.quick-grid') ? 30 : 22));
 }
 const LEAD = /^\s*(\p{Extended_Pictographic}️?)\s*/u;
 function swapLeading(el) {
@@ -117,8 +123,8 @@ export function decorate(root) {
   if (!root || root.nodeType !== 1) return;
   if (root.matches?.(SINGLE)) swapWhole(root);
   root.querySelectorAll(SINGLE).forEach(swapWhole);
-  if (root.matches?.('.card-title')) swapLeading(root);
-  root.querySelectorAll('.card-title').forEach(swapLeading);
+  if (root.matches?.(LEADING)) swapLeading(root);
+  root.querySelectorAll(LEADING).forEach(swapLeading);
 }
 
 export function initIcons() {
