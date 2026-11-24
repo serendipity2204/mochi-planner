@@ -1,4 +1,5 @@
 // Pomodoro focus mode with the pig study buddy, rewards, wardrobe unlocks and streaks.
+import { peekPig } from '../icons.js';
 import { store, commit } from '../store.js';
 import { t, fmtDuration, weekdayShort } from '../i18n.js';
 import { esc, pad, addDays, startOfDay, dkey } from '../utils.js';
@@ -59,7 +60,7 @@ export function render() {
         </div>
       </div>
       <div class="col" style="gap:14px">
-        <div class="card"><div class="card-title">${t('focus.today')}</div>
+        <div class="card has-peek">${peekPig()}<div class="card-title">${t('focus.today')}</div>
           <div class="row" style="gap:16px">${ring(goal ? today / goal : 0, 92, 10, 'var(--primary)', `<div style="font-size:1.1rem">${Math.round(today)}</div><div class="tiny muted">/${goal} ${t('unit.minShort')}</div>`)}
           <div class="grow stat-row" style="grid-template-columns:1fr 1fr">
             <div class="stat"><b>🔥 ${streak()}</b><span>${t('focus.streak')}</span></div>

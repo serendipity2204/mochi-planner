@@ -1,4 +1,5 @@
 // Dashboard: date, pig status, next class countdown, today's classes, assignments, exams, focus, to-dos.
+import { peekPig } from '../icons.js';
 import { store, commit } from '../store.js';
 import { t, fmtTime, fmtDate, relDay, weekdayLong, fmtCountdown, fmtDuration, lang } from '../i18n.js';
 import { esc, dkey } from '../utils.js';
@@ -59,7 +60,7 @@ const SECTIONS = {
   },
   focus() {
     const today = focusOn(new Date()), goal = S().settings.focus.dailyGoal;
-    return `<div class="card"><div class="card-title"><span class="grow">⏱️ ${t('home.focusToday')}</span><button class="link" data-act="nav" data-to="stats">${t('nav.stats')}</button></div>
+    return `<div class="card has-peek">${peekPig()}<div class="card-title"><span class="grow">⏱️ ${t('home.focusToday')}</span><button class="link" data-act="nav" data-to="stats">${t('nav.stats')}</button></div>
       <div class="row" style="gap:16px">${ring(goal ? today / goal : 0, 78, 9, 'var(--primary)', `<div>${Math.round(goal ? Math.min(100, today / goal * 100) : 0)}%</div>`)}
       <div class="grow"><div class="bold">${fmtDuration(today)} <span class="muted small">/ ${fmtDuration(goal)}</span></div><div class="small muted">🔥 ${t('home.streakDays', { n: streak() })}</div>
       <button class="btn sm primary" style="margin-top:8px" data-act="nav" data-to="focus">▶ ${S().timer.running ? t('home.timerRunning') : t('focus.start')}</button></div></div></div>`;

@@ -11,6 +11,7 @@ import { lockIfNeeded } from './lock.js';
 import * as cloud from './cloud.js';
 import { pushWidgets } from './widgets.js';
 import { checkUpdate } from './update.js';
+import { initIcons } from './icons.js';
 import { initFileSync, onFileSync } from './filesync.js';
 import { refreshPush, disablePush, pushPermission } from './push.js';
 
@@ -171,6 +172,7 @@ async function boot() {
 
   document.getElementById('app').innerHTML = '<main class="main" id="main"></main><nav class="nav" id="nav"></nav>';
   main = $('#main'); nav = $('#nav');
+  initIcons();
   document.getElementById('splash')?.remove();
 
   document.addEventListener('click', (e) => {

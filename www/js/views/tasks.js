@@ -1,4 +1,5 @@
 // Tasks: assignments (with subtasks & status colours), exams (countdown & study plan), to-dos.
+import { peekPig } from '../icons.js';
 import { store, commit, delFile } from '../store.js';
 import { t, fmtTime, fmtDate, relDay, fmtDuration, fmtCountdown } from '../i18n.js';
 import { esc, uid, dkey, addDays, parseDate, daysBetween } from '../utils.js';
@@ -47,7 +48,7 @@ function asgList() {
   if (st.filter === 'active') list = list.filter((a) => !isComplete(a));
   if (st.filter === 'done') list = list.filter(isComplete);
   const total = S().assignments.length, done = S().assignments.filter(isComplete).length;
-  return `${total ? `<div class="card" style="margin-bottom:12px"><div class="row"><div class="grow"><div class="bold">${t('asg.overall')}</div><div class="small muted">${t('asg.doneOf', { d: done, n: total })}</div></div><b style="color:var(--primary-ink);font-size:1.3rem">${Math.round(done / total * 100)}%</b></div><div class="progress" style="margin-top:8px"><i style="width:${done / total * 100}%"></i></div>
+  return `${total ? `<div class="card has-peek" style="margin-bottom:12px">${peekPig()}<div class="row"><div class="grow"><div class="bold">${t('asg.overall')}</div><div class="small muted">${t('asg.doneOf', { d: done, n: total })}</div></div><b style="color:var(--primary-ink);font-size:1.3rem">${Math.round(done / total * 100)}%</b></div><div class="progress" style="margin-top:8px"><i style="width:${done / total * 100}%"></i></div>
     <div class="row small muted" style="margin-top:10px;gap:12px;flex-wrap:wrap"><span><span class="dot red"></span> ${t('status.red')}</span><span><span class="dot yellow"></span> ${t('status.yellow')}</span><span><span class="dot green"></span> ${t('status.green')}</span></div></div>` : ''}
     <div class="chips">${['active', 'done', 'all'].map((f) => `<button class="chip ${st.filter === f ? 'on' : ''}" data-act="asg.filter" data-f="${f}">${t('filter.' + f)} ${counts[f]}</button>`).join('')}
     ${courses.length > 1 ? `<span style="width:1px;background:var(--line);flex:none"></span>${['', ...courses].map((c) => `<button class="chip ${st.course === c ? 'on' : ''}" data-act="asg.course" data-c="${esc(c)}">${c ? esc(c) : t('filter.allCourses')}</button>`).join('')}` : ''}</div>
