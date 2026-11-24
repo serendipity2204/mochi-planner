@@ -4,6 +4,7 @@ import { PUSH } from './config.js';
 import { store } from './store.js';
 import * as cloud from './cloud.js';
 import { isNative } from './native.js';
+import { hashStr } from './utils.js';
 
 const FB = () => cloud.getFB();
 export const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -39,10 +40,12 @@ export async function enablePush() {
   const reg = await navigator.serviceWorker.ready;
   const sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(PUSH.publicKey) }));
   await saveSub(sub);
+  syncReminderSchedule(500);
   return true;
 }
 
 export async function disablePush() {
+  setTimeout(() => syncReminderSchedule(0), 500);
   try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); await sub?.unsubscribe(); } catch {}
   const fb = FB(); const u = cloud.status.user;
   if (fb && u) { try { await fb.F.setDoc(fb.F.doc(fb.db, 'pushSubs', u.uid), { subs: { [deviceId()]: fb.F.deleteField() } }, { merge: true }); } catch (e) { console.warn(e); } }
@@ -75,4 +78,31 @@ export async function sendPush(uid, { title, body, tag = '', url = '' }) {
       body: JSON.stringify({ subs, title, body, tag, url }),
     });
   } catch (e) { console.warn('push send', e); }
+}
+
+// ---------- Class / assignment / exam reminders for iPhone (sent by the push server every minute) ----------
+let scheduleTimer = null, buildFn = null;
+/** reminders.js hands us its builder so we avoid a circular import */
+export const setReminderBuilder = (fn) => { buildFn = fn; };
+export function syncReminderSchedule(delay = 3000) {
+  clearTimeout(scheduleTimer);
+  scheduleTimer = setTimeout(uploadSchedule, delay);
+}
+async function uploadSchedule() {
+  if (isNative() || !pushConfigured() || !pushSupported() || !buildFn) return;
+  const fb = FB(); const u = fb?.auth?.currentUser;
+  if (!u) return;
+  let sub = null;
+  if (pushPermission() === 'granted') { try { sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription(); } catch {} }
+  const items = sub ? buildFn().map((r) => ({ at: r.at, title: r.title, body: r.body, tag: 'r' + r.id })) : [];
+  const body = JSON.stringify({ device: deviceId(), subs: sub ? [sub.toJSON()] : [], items });
+  const sig = String(hashStr(u.uid + body));
+  try { if (localStorage.getItem('mochi-sched-sig') === sig) return; } catch {}
+  try {
+    const r = await fetch(PUSH.url.replace(/\/$/, '') + '/schedule', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + (await u.getIdToken()), 'Content-Type': 'application/json' }, body,
+    });
+    if (r.ok) { try { localStorage.setItem('mochi-sched-sig', sig); } catch {} }
+    else console.warn('schedule upload', r.status);
+  } catch (e) { console.warn('schedule upload', e); }
 }

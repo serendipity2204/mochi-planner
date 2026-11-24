@@ -1,6 +1,7 @@
 // Mochi Planner push server (Cloudflare Worker, free plan).
 // Sends Web Push notifications (iPhone home-screen app / browsers) for friend messages and class reminders.
 // Setup: paste this file into a Cloudflare Worker and add ONE secret named VAPID_PRIVATE.
+// Class / assignment reminders for iPhone also need: a KV namespace bound as REMINDERS and a Cron Trigger "* * * * *".
 const FIREBASE_PROJECT = 'mochi-planner-f9a9c';
 const VAPID_X = 'up6wfmGcoFTuvVAKiBdMECN6mY7_FLeLPjzeXm9CzBQ';
 const VAPID_Y = '3JP8nh_PgcBEMO5axM1qEPybwd8ZfCcj_CcZa3FQkd8';
@@ -82,18 +83,70 @@ async function pushOne(sub, payload, env) {
   return r.status;
 }
 
+// ---------- Scheduled reminders (KV: "idx" = list of keys, "r:<uid>:<device>" = { subs, items }) ----------
+const validSub = (s) => s && /^https:\/\//.test(s.endpoint) && s.keys?.p256dh && s.keys?.auth;
+async function saveSchedule(env, uid, d) {
+  const device = String(d.device || 'web').replace(/[^\w-]/g, '').slice(0, 40) || 'web';
+  const key = `r:${uid}:${device}`;
+  const subs = (Array.isArray(d.subs) ? d.subs : []).filter(validSub).slice(0, 3);
+  const now = Date.now();
+  const items = (Array.isArray(d.items) ? d.items : [])
+    .filter((x) => x && Number(x.at) > now && Number(x.at) < now + 15 * 864e5)
+    .slice(0, 300)
+    .map((x) => ({ at: Number(x.at), title: String(x.title || '').slice(0, 120), body: String(x.body || '').slice(0, 300), tag: String(x.tag || '').slice(0, 60) }));
+  const idx = JSON.parse((await env.REMINDERS.get('idx')) || '[]');
+  if (!subs.length || !items.length) {
+    await env.REMINDERS.delete(key);
+    if (idx.includes(key)) await env.REMINDERS.put('idx', JSON.stringify(idx.filter((k) => k !== key)));
+    return 0;
+  }
+  await env.REMINDERS.put(key, JSON.stringify({ subs, items, updated: now }));
+  if (!idx.includes(key)) { idx.push(key); await env.REMINDERS.put('idx', JSON.stringify(idx)); }
+  return items.length;
+}
+
+async function runDue(env, end) {
+  if (!env.REMINDERS || !env.VAPID_PRIVATE) return;
+  const start = end - 60000;
+  const idx = JSON.parse((await env.REMINDERS.get('idx')) || '[]');
+  for (const key of idx) {
+    const rec = JSON.parse((await env.REMINDERS.get(key)) || 'null');
+    if (!rec) continue;
+    const due = rec.items.filter((x) => x.at > start && x.at <= end);
+    if (!due.length) continue;
+    let gone = false;
+    for (const it of due) {
+      const payload = JSON.stringify({ title: it.title, body: it.body, tag: it.tag || 'reminder', url: './' });
+      for (const s of rec.subs) {
+        try { const st = await pushOne(s, payload, env); if (st === 404 || st === 410) { s.gone = true; gone = true; } } catch {}
+      }
+    }
+    if (gone) {
+      rec.subs = rec.subs.filter((s) => !s.gone);
+      await env.REMINDERS.put(key, JSON.stringify(rec));
+    }
+  }
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runDue(env, event.scheduledTime || Date.now()));
+  },
   async fetch(req, env) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(req.url);
-    if (req.method === 'GET') return json({ ok: true, app: 'mochi-push', ready: !!env.VAPID_PRIVATE, publicKey: VAPID_PUBLIC });
-    if (req.method !== 'POST' || url.pathname !== '/send') return json({ error: 'not found' }, 404);
+    if (req.method === 'GET') return json({ ok: true, app: 'mochi-push', ready: !!env.VAPID_PRIVATE, reminders: !!env.REMINDERS, publicKey: VAPID_PUBLIC });
+    if (req.method !== 'POST' || !['/send', '/schedule'].includes(url.pathname)) return json({ error: 'not found' }, 404);
     if (!env.VAPID_PRIVATE) return json({ error: 'VAPID_PRIVATE secret is missing' }, 500);
     let from;
     try { from = await verifyIdToken((req.headers.get('Authorization') || '').replace(/^Bearer /, '')); }
     catch (e) { return json({ error: 'unauthorized' }, 401); }
     let d;
     try { d = await req.json(); } catch { return json({ error: 'bad json' }, 400); }
+    if (url.pathname === '/schedule') {
+      if (!env.REMINDERS) return json({ error: 'REMINDERS KV binding is missing' }, 501);
+      return json({ ok: true, saved: await saveSchedule(env, from, d) });
+    }
     const subs = (Array.isArray(d.subs) ? d.subs : []).slice(0, 10).filter((s) => s && /^https:\/\//.test(s.endpoint) && s.keys?.p256dh && s.keys?.auth);
     const payload = JSON.stringify({ title: String(d.title || '').slice(0, 120), body: String(d.body || '').slice(0, 300), tag: String(d.tag || '').slice(0, 60), url: String(d.url || '').slice(0, 200), from });
     const results = [];

@@ -4,6 +4,7 @@ import { t, fmtTime, fmtDate } from './i18n.js';
 import { dkey, addDays, startOfDay, at, toMin, hashStr, debounce } from './utils.js';
 import { classesOn, isComplete, dueAt, examAt } from './data.js';
 import { scheduleNotifications } from './native.js';
+import { setReminderBuilder, syncReminderSchedule } from './push.js';
 
 const HORIZON_DAYS = 14;
 
@@ -80,4 +81,6 @@ const channelNames = () => ({ chime: t('sound.chime'), bell: t('sound.bell'), bu
 
 export const reschedule = debounce(() => {
   scheduleNotifications(buildReminders(), store.state.settings.notif.sound, channelNames()).catch((e) => console.warn(e));
+  syncReminderSchedule(); // iPhone / browser: the push server delivers these when the app is closed
 }, 700);
+setReminderBuilder(() => buildReminders());

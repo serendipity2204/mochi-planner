@@ -269,7 +269,7 @@ function registerWebApp() {
     if (e.data?.type !== 'open') return;
     try { const o = new URL(e.data.url).searchParams.get('open'); const r = o && targetRoute(o.startsWith('chat:') ? { uid: o.slice(5) } : { page: o }); if (r) { closeSheet(); go(r.name, r.params); } } catch {}
   });
-  cloud.onCloud((st) => { if (st.user && st.state === 'synced') refreshPush(); });
+  cloud.onCloud((st) => { if (st.user && st.state === 'synced') { refreshPush(); reschedule(); } });
   store.onChange((reason) => { if (reason === 'settings' && store.state.settings.friends.notify === false && pushPermission() === 'granted') disablePush(); });
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = navigator.standalone || window.matchMedia?.('(display-mode: standalone)').matches;
