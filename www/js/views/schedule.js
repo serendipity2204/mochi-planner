@@ -3,7 +3,7 @@ import { store, commit } from '../store.js';
 import { t, fmtTime, fmtDate, weekdayShort, weekdayLong, monthName, lang, relDay } from '../i18n.js';
 import { esc, uid, dkey, parseDate, addDays, startOfDay, toMin, weekStart, COURSE_COLORS, colorFor } from '../utils.js';
 import { on, go, rerender, openSheet, closeSheet, sheetHead, confirmDialog, toast, formData, fieldError, field, input, select, empty, loading, pickFiles, tap, $ } from '../ui.js';
-import { classesOn, findConflicts, courseColor, eventsOn, sessionsOf, normalizeCourse, isComplete, assignmentStatus, examDaysLeft, courseColorByKey } from '../data.js';
+import { semesterWeek, classesOn, findConflicts, courseColor, eventsOn, sessionsOf, normalizeCourse, isComplete, assignmentStatus, examDaysLeft, courseColorByKey } from '../data.js';
 import { parseTimetableText } from '../parse.js';
 import { voiceParse } from '../voice.js';
 import { reschedule } from '../reminders.js';
@@ -12,6 +12,14 @@ const st = { view: null, date: dkey() };
 const S = () => store.state;
 
 const reminderOpts = () => [{ value: '', label: t('remind.default') }, { value: -1, label: t('remind.none') }, ...[0, 5, 10, 15, 30, 60, 120, 180, 1440].map((m) => ({ value: m, label: t('remind.before', { t: remindLabel(m) }) }))];
+/** "第 5 周" / "期中假" … for a date ('' when no semester is set or outside it) */
+export function weekLabel(date) {
+  const w = semesterWeek(date);
+  if (!w || w.kind === 'before' || w.kind === 'after') return '';
+  return w.kind === 'teach' ? t('sem.weekN', { n: w.teach }) : t('sem.kind.' + w.kind);
+}
+export const weekBadge = (date) => { const l = weekLabel(date); return l ? `<span class="badge week-badge">${esc(l)}</span>` : ''; };
+
 export const remindLabel = (m) => (m === 0 ? t('remind.atTime') : m < 60 ? t('unit.min', { n: m }) : m % 1440 === 0 ? t('unit.day', { n: m / 1440 }) : t('unit.hour', { n: m / 60 }));
 
 // Pick a colour not yet used by another course (same code keeps its colour)
@@ -40,7 +48,7 @@ export function render(params = {}) {
       <button class="icon-btn" data-act="course.voice" aria-label="${t('course.voice')}">🎤</button>
       <button class="icon-btn" data-act="course.add" aria-label="${t('course.add')}" style="background:var(--primary);color:#fff">＋</button></div>
     <div class="seg" style="margin-bottom:12px">${['day', 'week', 'month'].map((v) => `<button class="${st.view === v ? 'on' : ''}" data-act="sch.view" data-v="${v}">${t('cal.' + v)}</button>`).join('')}</div>
-    <div class="row" style="margin-bottom:12px"><button class="icon-btn" data-act="sch.nav" data-d="-1">‹</button><div class="grow center bold">${esc(label)}</div><button class="btn sm" data-act="sch.today">${t('rel.today')}</button><button class="icon-btn" data-act="sch.nav" data-d="1">›</button></div>
+    <div class="row" style="margin-bottom:12px"><button class="icon-btn" data-act="sch.nav" data-d="-1">‹</button><div class="grow center bold">${esc(label)}${st.view !== 'month' ? `<div>${weekBadge(d)}</div>` : ''}</div><button class="btn sm" data-act="sch.today">${t('rel.today')}</button><button class="icon-btn" data-act="sch.nav" data-d="1">›</button></div>
     ${body}
   </div>`;
 }

@@ -49,6 +49,7 @@ const I = {
   target: `<circle ${F} cx="11" cy="13" r="7.6"/><circle cx="11" cy="13" r="4.2" fill="var(--card)"/><circle cx="11" cy="13" r="1.4" fill="currentColor" stroke="none"/><path d="M11 13 19.2 4.8M16.6 4.4l2.6.4.4 2.6"/>`,
   pencil: `<path ${F} d="M15.4 4.6a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L9 19l-4.4 1 1-4.4Z"/><path d="M13.6 6.4l4 4"/>`,
   play: `<path ${F} d="M8 5.6v12.8a1 1 0 0 0 1.5.9l10-6.4a1 1 0 0 0 0-1.8l-10-6.4A1 1 0 0 0 8 5.6Z"/>`,
+  grad: `<path ${F} d="M2.8 9.4 12 5l9.2 4.4L12 13.8Z"/><path d="M6.4 11.2v4.2c1.4 1.6 3.4 2.4 5.6 2.4s4.2-.8 5.6-2.4v-4.2M21.2 9.4v5.2"/><circle cx="21.2" cy="15.6" r=".9" fill="currentColor" stroke="none"/>`,
   rocket: `<path ${F} d="M12 3.2c3.2 2.2 4.6 5.4 4.2 9.4l-1.8 3.2H9.6l-1.8-3.2C7.4 8.6 8.8 5.4 12 3.2Z"/><circle cx="12" cy="9.6" r="1.6" fill="var(--card)"/><path d="M7.8 12.6 5 15.4l2.8.8M16.2 12.6l2.8 2.8-2.8.8M10.6 18.6 12 21l1.4-2.4"/>`,
 };
 
@@ -58,7 +59,7 @@ const EMOJI = {
   '⚙': 'gear', '🔍': 'search', '🎤': 'mic', '📷': 'camera', '🔔': 'bell', '📚': 'books', '📖': 'books', '👗': 'dress', '✕': 'close', '⋯': 'dots',
   '‹': 'back', '›': 'fwd', '−': 'minus', '➤': 'send', '💬': 'chat', '👫': 'friends', '☁': 'cloud', '🔒': 'lock', '🔊': 'sound', '💡': 'bulb',
   'ℹ': 'info', '🎨': 'palette', '🌐': 'globe', '🧩': 'widget', '📊': 'stats', '⏰': 'alarm', '👤': 'user', '🔄': 'refresh', '🗒': 'note', '📒': 'note',
-  '🔥': 'fire', '🏷': 'tag', '✨': 'sparkle', '🌙': 'moon', '🔑': 'key', '📱': 'phone', '📲': 'phone', '🎟': 'ticket', '🚀': 'rocket', '🎯': 'target', '✏': 'pencil', '▶': 'play', '✅': 'checklist', '☑': 'checklist', '🗂': 'note', '📦': 'cloud', '💾': 'cloud', '👀': 'search', '👁': 'search', '🎵': 'sound', '📳': 'phone', '📣': 'bell', '🕒': 'alarm', '🕐': 'alarm',
+  '🔥': 'fire', '🏷': 'tag', '✨': 'sparkle', '🌙': 'moon', '🔑': 'key', '📱': 'phone', '📲': 'phone', '🎟': 'ticket', '🚀': 'rocket', '🎓': 'grad', '🔢': 'stats', '🎯': 'target', '✏': 'pencil', '▶': 'play', '✅': 'checklist', '☑': 'checklist', '🗂': 'note', '📦': 'cloud', '💾': 'cloud', '👀': 'search', '👁': 'search', '🎵': 'sound', '📳': 'phone', '📣': 'bell', '🕒': 'alarm', '🕐': 'alarm',
 };
 
 export function icon(name, size = 22) {

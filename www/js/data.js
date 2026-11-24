@@ -1,6 +1,6 @@
 // Derived data & business rules shared by all views.
 import { store } from './store.js';
-import { dkey, parseDate, toMin, at, addDays, startOfDay, daysBetween, colorFor } from './utils.js';
+import { dkey, parseDate, toMin, at, addDays, startOfDay, daysBetween, colorFor, weekStart } from './utils.js';
 import { ACCESSORIES, EXPRESSIONS } from './pig.js';
 
 const S = () => store.state;
@@ -23,10 +23,39 @@ export function normalizeCourse(c) {
   return { ...c, sessions: ss, days: ss[0].days, start: ss[0].start, end: ss[0].end, location: ss[0].location || '' };
 }
 
+// ---------- Semester weeks ----------
+// settings.semester = { start: 'YYYY-MM-DD', weeks: 14, special: { '8': 'break' | 'study' | 'exam' } }
+// Special weeks have no classes and don't count as teaching weeks.
+export const SPECIAL_WEEKS = ['break', 'study', 'exam'];
+export function semesterWeek(date) {
+  const sem = S().settings.semester;
+  if (!sem?.start) return null;
+  const ws = S().settings.cal.weekStart;
+  const idx = Math.round((weekStart(startOfDay(date), ws) - weekStart(parseDate(sem.start), ws)) / (7 * 864e5)) + 1;
+  const total = Math.max(1, Number(sem.weeks) || 14);
+  if (idx < 1) return { idx, kind: 'before' };
+  if (idx > total) return { idx, kind: 'after' };
+  const kind = sem.special?.[idx] || 'teach';
+  let teach = null;
+  if (kind === 'teach') { teach = 0; for (let i = 1; i <= idx; i++) if (!sem.special?.[i]) teach++; }
+  return { idx, kind, teach, total };
+}
+export function semesterEnd() {
+  const sem = S().settings.semester;
+  if (!sem?.start) return null;
+  const ws = weekStart(parseDate(sem.start), S().settings.cal.weekStart);
+  return addDays(ws, Math.max(1, Number(sem.weeks) || 14) * 7 - 1);
+}
+
 export function courseActiveOn(c, date) {
   const k = dkey(date);
   if (c.startDate && k < c.startDate) return false;
   if (c.endDate && k > c.endDate) return false;
+  const sw = semesterWeek(date);
+  if (sw) {
+    if (SPECIAL_WEEKS.includes(sw.kind)) return false; // mid-sem break, study week, exams
+    if (!c.startDate && !c.endDate && (sw.kind === 'before' || sw.kind === 'after')) return false; // courses follow the semester
+  }
   return (c.days || []).includes(date.getDay());
 }
 export const classesOn = (date) => allSessions().filter((c) => courseActiveOn(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));

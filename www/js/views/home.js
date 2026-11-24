@@ -1,5 +1,6 @@
 // Dashboard: date, pig status, next class countdown, today's classes, assignments, exams, focus, to-dos.
 import { peekPig } from '../icons.js';
+import { weekBadge } from './schedule.js';
 import { store, commit } from '../store.js';
 import { t, fmtTime, fmtDate, relDay, weekdayLong, fmtCountdown, fmtDuration, lang } from '../i18n.js';
 import { esc, dkey } from '../utils.js';
@@ -94,7 +95,7 @@ export function render() {
       <button class="icon-btn" data-act="nav" data-to="search" aria-label="${t('nav.search')}">🔍</button><button class="icon-btn" data-act="nav" data-to="settings" aria-label="${t('common.settings')}">⚙️</button></div>
     <div class="hero">
       <div class="pig-box" data-act="pig.poke">${pigSVG(pigProps({ size: 104, cls: 'pig-anim' }))}</div>
-      <div class="grow"><div class="date-big">${dateStr} <span style="color:var(--primary-ink)">${weekdayLong(d.getDay())}</span></div>
+      <div class="grow"><div class="date-big">${dateStr} <span style="color:var(--primary-ink)">${weekdayLong(d.getDay())}</span></div>${weekBadge(d) ? `<div style="margin:4px 0 0 2px">${weekBadge(d)}</div>` : ''}
         <div class="bubble" style="margin-top:8px;margin-left:8px" id="home-msg">${esc(moodMessage())}</div>
         <div class="tiny muted bold" style="margin:6px 0 0 10px">— ${esc(pigName())}</div></div>
     </div>

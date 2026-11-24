@@ -13,6 +13,7 @@ import { SECTION_IDS } from './home.js';
 import { setupPin, verifyPinCancellable } from '../lock.js';
 import { avatarHTML } from './me.js';
 import { previewHTML, pinWidget, pushWidgets } from '../widgets.js';
+import { weekLabel } from './schedule.js';
 
 const S = () => store.state;
 const set = () => S().settings;
@@ -29,6 +30,26 @@ const sw = (path, val) => toggle(`data-set="${path}" data-type="bool"`, val);
 const sel = (path, opts, val, type = 'str') => select('', opts, val, `data-set="${path}" data-type="${type}"`);
 const group = (title, rows) => `${title ? `<div class="set-group-title">${title}</div>` : ''}<div class="set-group">${rows.join('')}</div>`;
 const leadOpts = (list) => list.map((m) => ({ value: m, label: m < 60 ? t('unit.min', { n: m }) : m % 1440 === 0 ? t('unit.day', { n: m / 1440 }) : t('unit.hour', { n: m / 60 }) }));
+
+function semesterGroup() {
+  const sem = set().semester, n = Math.max(1, Number(sem.weeks) || 14);
+  const now = weekLabel(new Date());
+  const kindOf = (i) => sem.special?.[i] || 'teach';
+  let teach = 0;
+  const chips = Array.from({ length: n }, (_, k) => {
+    const i = k + 1, kind = kindOf(i);
+    if (kind === 'teach') teach++;
+    return `<button class="semw ${kind}" data-act="sem.week" data-w="${i}"><b>${kind === 'teach' ? teach : '–'}</b><small>${kind === 'teach' ? t('sem.short') : t('sem.kindShort.' + kind)}</small></button>`;
+  }).join('');
+  return `<div class="set-group-title">🗓️ ${t('sem.title')}</div>${group('', [
+    row('📅', t('sem.start'), `<input class="input" type="date" style="max-width:52%" data-set="semester.start" data-type="str" value="${esc(sem.start || '')}">`, t('sem.startSub')),
+    row('🔢', t('sem.weeks'), `<input class="input" type="number" min="1" max="30" inputmode="numeric" style="max-width:90px" data-set="semester.weeks" data-type="num" value="${n}">`, sem.start ? (now ? t('sem.today', { w: now }) : t('sem.outside')) : t('sem.notSet')),
+    sem.start ? `<div style="padding:12px 14px"><div class="small muted" style="margin-bottom:8px">${t('sem.tapHint')}</div><div class="semweeks">${chips}</div>
+      <div class="row wrap small" style="margin-top:10px;gap:12px"><span><i class="semdot teach"></i>${t('sem.short')}</span>${['break', 'study', 'exam'].map((k) => `<span><i class="semdot ${k}"></i>${t('sem.kind.' + k)}</span>`).join('')}</div>
+      <p class="tiny muted" style="margin:10px 0 0">${t('sem.note')}</p>
+      <button class="btn sm danger" style="margin-top:10px" data-act="sem.clear">${t('sem.clear')}</button></div>` : '',
+  ])}`;
+}
 
 function pushRow() {
   const perm = push.pushPermission();
@@ -193,7 +214,7 @@ const BUILDERS = {
       row('⏰', t('notif.classLead'), sel('notif.classLead', leadOpts([0, 5, 10, 15, 30, 60, 120, 180]), set().notif.classLead, 'num')),
       row('🌅', t('cal.dayStart'), sel('cal.dayStart', Array.from({ length: 12 }, (_, i) => ({ value: i + 5, label: `${i + 5}:00` })), c.dayStart, 'num')),
       row('🌇', t('cal.dayEnd'), sel('cal.dayEnd', Array.from({ length: 8 }, (_, i) => ({ value: i + 17, label: `${i + 17}:00` })), c.dayEnd, 'num')),
-    ]);
+    ]) + semesterGroup();
   },
   backup() {
     const b = set().backup, c = set().cloud, u = cloud.status.user;
@@ -305,6 +326,7 @@ export function mount(root, params) {
     commit('settings');
     if (path.startsWith('appearance')) { applyAppearance(); if (path === 'appearance.fontScale') rerender(); }
     if (path.startsWith('notif') || path.startsWith('cal')) reschedule();
+    if (path.startsWith('semester')) { if (path === 'semester.weeks') set().semester.weeks = Math.min(30, Math.max(1, Math.round(set().semester.weeks) || 14)); commit('settings'); reschedule(); rerender(); }
     if (path === 'notif.enabled' && el.checked) notifPermission(true).then(() => { reschedule(); rerender(); });
     if (path === 'notif.sound' || path === 'sound.timer') playSound(el.value, 0.3);
     if (path.startsWith('profile')) toast(t('common.saved'));
@@ -360,6 +382,18 @@ function stripRefs(id) {
 }
 
 on({
+  'sem.week': (el) => {
+    const sem = set().semester; sem.special = sem.special || {};
+    const order = ['teach', 'break', 'study', 'exam'];
+    const cur = sem.special[el.dataset.w] || 'teach';
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    if (next === 'teach') delete sem.special[el.dataset.w]; else sem.special[el.dataset.w] = next;
+    commit('settings'); reschedule(); rerender();
+  },
+  'sem.clear': async () => {
+    if (!(await confirmDialog(t('sem.clearMsg'), { danger: true, ok: t('sem.clear') }))) return;
+    Object.assign(set().semester, { start: '', weeks: 14, special: {} }); commit('settings'); reschedule(); rerender();
+  },
   'push.enable': async (el) => {
     el.disabled = true;
     try { await push.enablePush(); toast(t('push.enabled')); rerender(); }

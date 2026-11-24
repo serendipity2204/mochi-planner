@@ -45,6 +45,7 @@ export function defaultSettings() {
       dnd: false, dndStart: '23:00', dndEnd: '07:00', sound: 'chime',
     },
     cal: { weekStart: 1, view: 'week', timeFmt: '24', dateFmt: 'YMD', dayStart: 7, dayEnd: 22 },
+    semester: { start: '', weeks: 14, special: {} },
     sound: { app: true, vibrate: true, timer: 'bell' },
     focus: { focus: 25, short: 5, long: 15, longEvery: 4, dailyGoal: 120, autoNext: false },
     backup: { auto: true, last: null, lastExport: null },
@@ -62,6 +63,7 @@ export function defaultState() {
     courses: [], assignments: [], exams: [], todos: [], notes: [], focusLog: [],
     timer: { mode: 'focus', running: false, endAt: 0, remainingMs: 0, totalMs: 0, cycle: 0, label: '' },
     rewards: { coins: 0 },
+    grades: { semesters: [], scale: null, target: '', nextCredits: '' },
   };
 }
 

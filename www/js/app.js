@@ -24,6 +24,7 @@ import * as stats from './views/stats.js';
 import * as notes from './views/notes.js';
 import * as settings from './views/settings.js';
 import * as friendsView from './views/friends.js';
+import * as gpa from './views/gpa.js';
 import * as fr from './friends.js';
 const { initFriends, setPokeHandler, onFriends } = fr;
 
@@ -32,6 +33,7 @@ const ROUTES = {
   notes: { render: notes.renderNotes, mount: notes.mountNotes },
   search: { render: notes.renderSearch, mount: notes.mountSearch },
   friends: { render: friendsView.renderFriends, mount: friendsView.mountFriends },
+  gpa: { render: gpa.render, mount: gpa.mount },
   chat: { render: friendsView.renderChat, mount: friendsView.mountChat, unmount: friendsView.unmountChat, tick: friendsView.tickChat },
   help: { render: me.renderHelp },
   about: { render: me.renderAbout },
@@ -44,7 +46,7 @@ const stack = [];
 let main, nav;
 
 function renderNav() {
-  const active = TABS.some(([n]) => n === route.name) ? route.name : ({ stats: 'me', notes: 'me', settings: 'me', help: 'me', about: 'me', friends: 'me', chat: 'me', search: 'home' }[route.name] || 'home');
+  const active = TABS.some(([n]) => n === route.name) ? route.name : ({ stats: 'me', notes: 'me', settings: 'me', help: 'me', about: 'me', friends: 'me', chat: 'me', gpa: 'me', search: 'home' }[route.name] || 'home');
   nav.innerHTML = `<div class="nav-brand">${pigSVG({ size: 34, acc: store.state.settings.pig.acc, expr: 'happy' })}${esc(t('app.name'))}</div>` + TABS.map(([n, ic, sideOnly]) => n === 'plus'
     ? `<button class="nav-plus" data-act="quick" data-label="${esc(t('quick.title'))}" aria-label="${esc(t('quick.title'))}">＋</button>`
     : `<button class="nav-item ${sideOnly ? 'side-only' : ''} ${active === n ? 'active' : ''}" data-act="tab" data-to="${n}"><span class="ni">${ic}</span><span>${t('nav.' + n)}</span></button>`).join('');

@@ -451,3 +451,29 @@ mark { background: var(--primary-2); color: inherit; border-radius: 4px; padding
 .card.has-peek > .peek-pig { position: absolute; right: 24px; top: -48px; width: 88px; height: auto; pointer-events: none; animation: peek 4s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes peek { 0%, 86%, 100% { transform: translateY(0); } 92% { transform: translateY(-4px) rotate(-3deg); } }
 @media (prefers-reduced-motion: reduce) { .card.has-peek > .peek-pig { animation: none; } }
+
+/* ---------- Semester weeks ---------- */
+.week-badge { margin-top: 4px; background: var(--primary-2); color: var(--text); }
+.semweeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.semw { border-radius: 14px; padding: 6px 0 4px; display: flex; flex-direction: column; align-items: center; background: var(--card-2); border: 1.5px solid var(--line); line-height: 1.1; }
+.semw b { font-size: .95rem; }
+.semw small { font-size: .62rem; color: var(--muted); font-weight: 700; }
+.semw.break { background: #FBD9DF; border-color: #F4B6C2; color: #8A3B4B; }
+.semw.study { background: #DCEBFA; border-color: #B7D3F0; color: #2F5F8C; }
+.semw.exam { background: #F9E3AE; border-color: #EECB72; color: #7A5410; }
+.semw.break small, .semw.study small, .semw.exam small { color: inherit; opacity: .8; }
+.semdot { display: inline-block; width: 10px; height: 10px; border-radius: 4px; margin-right: 4px; vertical-align: -1px; background: var(--card-2); border: 1.5px solid var(--line); }
+.semdot.break { background: #FBD9DF; border-color: #F4B6C2; } .semdot.study { background: #DCEBFA; border-color: #B7D3F0; } .semdot.exam { background: #F9E3AE; border-color: #EECB72; }
+[data-theme="dark"] .semw.break, [data-theme="dark"] .semw.study, [data-theme="dark"] .semw.exam { color: #3E2C1F; }
+
+/* ---------- GPA ---------- */
+.icon-btn.sm { width: 34px; height: 34px; font-size: .95rem; }
+.gpa-hero .gpa-big { font-size: 2.6rem; font-weight: 900; line-height: 1.05; margin: 2px 0; }
+.gpa-hero .pig { flex: none; }
+.gpa-pill { padding: 4px 10px; border-radius: 999px; font-size: .8rem; font-weight: 900; background: var(--primary-2); color: var(--text); white-space: nowrap; }
+.gpa-pill.great { background: #CFE7C4; color: #2D5A22; } .gpa-pill.good { background: #DCEBFA; color: #2F5F8C; }
+.gpa-pill.ok { background: #F9E3AE; color: #7A5410; } .gpa-pill.low { background: #FBD9DF; color: #8A3B4B; }
+.grade-chip { min-width: 46px; text-align: center; padding: 6px 10px; border-radius: 14px; font-weight: 900; background: var(--card); box-shadow: var(--shadow-sm); flex: none; }
+.grade-chip.pending { font-weight: 700; font-size: .75rem; color: var(--muted); }
+.gpa-need { margin-top: 4px; padding: 12px 14px; border-radius: 16px; background: var(--primary-3); font-weight: 800; line-height: 1.5; }
+.gpa-sem .card-title { gap: 6px; }
