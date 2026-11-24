@@ -71,6 +71,7 @@ export function render() {
         </div>
         <div class="card"><div class="card-title">${t('focus.thisWeek')}</div>
           <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:110px">${week.map((d) => { const v = focusOn(d); return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end"><span class="tiny muted">${v ? Math.round(v) : ''}</span><div style="width:70%;border-radius:8px 8px 4px 4px;background:${dkey(d) === dkey() ? 'var(--primary)' : 'var(--primary-2)'};height:${Math.max(4, v / maxW * 70)}px"></div><span class="tiny muted bold">${weekdayShort(d.getDay())}</span></div>`; }).join('')}</div></div>
+        <button class="card row" data-act="home.open" style="text-align:left;width:100%"><span class="home-ic">🏡</span><div class="grow"><div class="bold">${t('home.title')}</div><div class="small muted">${t('home.focusCard', { n: S().rewards.coins || 0 })}</div></div><span class="chev"></span></button>
         <button class="card row" data-act="pig.wardrobe" style="text-align:left;width:100%">${pigSVG(pigProps({ mood: 'happy', size: 56 }))}<div class="grow"><div class="bold">${t('pig.wardrobe')}</div><div class="small muted">${nu ? t('pig.nextUnlock', { min: nu.left, item: t((nu.kind === 'acc' ? 'acc.' : 'expr.') + nu.id) }) : t('pig.allUnlocked')}</div></div><span class="chev"></span></button>
       </div>
     </div></div>`;

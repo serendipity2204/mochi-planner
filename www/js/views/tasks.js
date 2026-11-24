@@ -151,7 +151,8 @@ function refreshDetail(id) {
 function afterProgress(a, before) {
   if (!before && isComplete(a)) {
     a.completedAt = Date.now();
-    celebrate(); toast(t('asg.complete'));
+    celebrate();
+    if (!a.coined) { a.coined = true; S().rewards.coins = (S().rewards.coins || 0) + 15; toast(t('asg.complete') + ' · +15 🪙'); } else toast(t('asg.complete'));
     const s = S().settings.sound; if (s.app) import('../native.js').then((n) => n.playSound('coin'));
   } else if (!isComplete(a)) a.completedAt = null;
   commit('asg'); reschedule(); refreshDetail(a.id);
@@ -327,7 +328,7 @@ on({
   'todo.toggle': (el) => {
     const x = S().todos.find((y) => y.id === el.dataset.id); if (!x) return;
     x.done = !x.done; x.doneAt = x.done ? Date.now() : null;
-    if (x.done) { const r = el.getBoundingClientRect(); celebrate(r.left + 12, r.top, 4); tap(); }
+    if (x.done) { const r = el.getBoundingClientRect(); celebrate(r.left + 12, r.top, 4); tap(); if (!x.coined) { x.coined = true; S().rewards.coins = (S().rewards.coins || 0) + 3; toast('+3 🪙'); } }
     commit('todo'); reschedule(); rerender();
   },
   'todo.delete': async (el) => { if (!(await confirmDialog(t('todo.deleteMsg'), { danger: true, ok: t('common.delete') }))) return; S().todos = S().todos.filter((x) => x.id !== el.dataset.id); commit('todo'); reschedule(); closeSheet(); rerender(); },

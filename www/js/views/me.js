@@ -22,7 +22,7 @@ export const avatarHTML = (size = 64) => {
 export function render() {
   const p = S().profile;
   const tiles = [
-    ['👫', 'friends.title', 'friends'], ['🎓', 'gpa.title', 'gpa'], ['📊', 'nav.stats', 'stats'], ['🗒️', 'nav.notes', 'notes'], ['👗', 'pig.wardrobe', 'wardrobe'], ['🔍', 'nav.search', 'search'],
+    ['🏡', 'home.title', 'pighome'], ['👫', 'friends.title', 'friends'], ['🎓', 'gpa.title', 'gpa'], ['📊', 'nav.stats', 'stats'], ['🗒️', 'nav.notes', 'notes'], ['👗', 'pig.wardrobe', 'wardrobe'], ['🔍', 'nav.search', 'search'],
     ['✅', 'tasks.todo', 'todo'], ['🧩', 'set.widgets', 'settings:widgets'], ['☁️', 'set.backup', 'settings:backup'], ['⚙️', 'common.settings', 'settings'], ['💡', 'set.help', 'help'], ['ℹ️', 'set.about', 'about'],
   ];
   return `<div class="page">

@@ -64,6 +64,14 @@ export function defaultState() {
     timer: { mode: 'focus', running: false, endAt: 0, remainingMs: 0, totalMs: 0, cycle: 0, label: '' },
     rewards: { coins: 0 },
     grades: { semesters: [], scale: null, target: '', nextCredits: '' },
+    home: {
+      house: 'cottage', houses: ['cottage'], walls: ['cream', 'pinkstripe'], floors: ['wood'],
+      owned: { window: 1, plant: 1, bed: 1, lamp: 1 },
+      rooms: {
+        living: { wall: 'cream', floor: 'wood', items: [{ uid: 'st-window', id: 'window', x: 50, y: 40, s: 1, f: false }, { uid: 'st-plant', id: 'plant', x: 16, y: 90, s: 1, f: false }] },
+        bedroom: { wall: 'pinkstripe', floor: 'wood', items: [{ uid: 'st-bed', id: 'bed', x: 58, y: 92, s: 1, f: false }, { uid: 'st-lamp', id: 'lamp', x: 16, y: 90, s: 1, f: false }] },
+      },
+    },
   };
 }
 

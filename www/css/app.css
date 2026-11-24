@@ -480,3 +480,54 @@ mark { background: var(--primary-2); color: inherit; border-radius: 4px; padding
 .grade-chip.pending { font-weight: 700; font-size: .75rem; color: var(--muted); }
 .gpa-need { margin-top: 4px; padding: 12px 14px; border-radius: 16px; background: var(--primary-3); font-weight: 800; line-height: 1.5; }
 .gpa-sem .card-title { gap: 6px; }
+
+/* ---------- Pig's home ---------- */
+.coin-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 14px; border-radius: 999px; background: var(--primary-2); color: var(--text); font-weight: 800; box-shadow: inset 0 -2px 0 rgba(90, 60, 30, .1); white-space: nowrap; }
+.home-btn { min-height: 30px; padding: 0 10px; font-size: .75rem; }
+.home-ic { font-size: 1.6rem; width: 56px; height: 56px; display: grid; place-items: center; border-radius: 18px; background: var(--primary-3); }
+.house-scene { position: relative; height: 300px; border-radius: 28px; overflow: hidden; background: linear-gradient(180deg, #CFE6FA 0%, #EAF4FD 55%, #FFF4DE 100%); box-shadow: var(--shadow); }
+.hs-sun { position: absolute; right: 22px; top: 18px; width: 48px; height: 48px; border-radius: 50%; background: #F9DC86; box-shadow: 0 0 0 10px rgba(249, 220, 134, .35); }
+.hs-cloud { position: absolute; width: 74px; height: 24px; border-radius: 20px; background: #fff; opacity: .9; animation: cloud 18s linear infinite; }
+.hs-cloud::before { content: ""; position: absolute; left: 16px; top: -14px; width: 34px; height: 34px; border-radius: 50%; background: #fff; }
+.hs-cloud.c1 { top: 36px; left: -80px; } .hs-cloud.c2 { top: 84px; left: -80px; animation-delay: -9s; transform: scale(.7); }
+@keyframes cloud { to { left: 110%; } }
+.hs-grass { position: absolute; left: -10%; right: -10%; bottom: -40px; height: 110px; border-radius: 50%; background: #BFE0A8; border-top: 3px solid #5A3C2E; }
+.hs-house { position: absolute; left: 50%; bottom: 40px; width: 66%; max-width: 300px; transform: translateX(-56%); z-index: 2; transition: transform .2s; }
+.hs-house:active { transform: translateX(-56%) scale(.96); }
+.hs-house svg { width: 100%; display: block; }
+.hs-pig { position: absolute; right: 7%; bottom: 30px; z-index: 3; }
+.room-card { display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 10px; }
+.room-mini { width: 100%; }
+.room { position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: 26px; overflow: hidden; box-shadow: var(--shadow); border: 3px solid #5A3C2E; background: #FFF4DE; user-select: none; -webkit-user-select: none; }
+.room.mini { border-width: 2px; border-radius: 18px; pointer-events: none; }
+.room .room-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ritem { position: absolute; transform: translate(-50%, -100%) scaleX(var(--flip, 1)); }
+.ritem svg { width: 100%; height: auto; display: block; overflow: visible; }
+.room.editing .ritem { touch-action: none; cursor: grab; }
+.room.editing .ritem::after { content: ""; position: absolute; inset: -4px; border: 2px dashed transparent; border-radius: 10px; }
+.room.editing .ritem.sel::after { border-color: var(--primary-ink); }
+.room.editing { touch-action: pan-y; }
+.room-pig { position: absolute; z-index: 400; transform: translate(-50%, -100%) scaleX(var(--dir, 1)); transition: left 3.6s ease-in-out; cursor: pointer; }
+.room-pig .pig { width: 64px; height: auto; }
+.room-bubble { position: absolute; top: 52%; z-index: 401; transform: translateX(-50%); background: var(--card); color: var(--text); padding: 8px 12px; border-radius: 16px; border: 2px solid #5A3C2E; font-weight: 800; font-size: .8rem; max-width: 70%; text-align: center; animation: pop .2s ease; }
+.room-actions { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border-radius: 18px; background: var(--card); box-shadow: var(--shadow-sm); min-height: 54px; }
+.inv { margin-top: 12px; }
+.inv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.inv-it { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 16px; background: var(--card-2); border: 2px solid transparent; font-size: .7rem; font-weight: 800; text-align: center; }
+.inv-it svg { width: 100%; height: 46px; }
+.inv-it.on { border-color: var(--primary-ink); }
+.inv-it small { color: var(--muted); }
+.shop-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 700px) { .shop-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.shop-card { background: var(--card); border-radius: 22px; padding: 10px 10px 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; position: relative; }
+.shop-card:active { transform: scale(.97); }
+.shop-art { width: 100%; height: 110px; border-radius: 16px; background: var(--card-2); display: grid; place-items: center; padding: 10px; }
+.shop-art svg { max-width: 100%; max-height: 90px; }
+.shop-art.swatch { padding: 0; overflow: hidden; } .shop-art.swatch svg { width: 100%; height: 100%; max-height: none; }
+.shop-card .price { padding: 4px 12px; border-radius: 999px; background: var(--primary-2); font-weight: 900; font-size: .85rem; }
+.shop-card .own { color: var(--muted); font-weight: 800; }
+.house-pick { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.hp { flex: none; width: 116px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; border-radius: 18px; background: var(--card-2); border: 2px solid transparent; font-weight: 800; font-size: .8rem; }
+.hp svg { width: 100%; height: 76px; }
+.hp small { color: var(--muted); }
+.hp.on { border-color: var(--primary-ink); background: var(--primary-3); }

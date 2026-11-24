@@ -97,7 +97,7 @@ export function render() {
       <div class="pig-box" data-act="pig.poke">${pigSVG(pigProps({ size: 104, cls: 'pig-anim' }))}</div>
       <div class="grow"><div class="date-big">${dateStr} <span style="color:var(--primary-ink)">${weekdayLong(d.getDay())}</span></div>${weekBadge(d) ? `<div style="margin:4px 0 0 2px">${weekBadge(d)}</div>` : ''}
         <div class="bubble" style="margin-top:8px;margin-left:8px" id="home-msg">${esc(moodMessage())}</div>
-        <div class="tiny muted bold" style="margin:6px 0 0 10px">— ${esc(pigName())}</div></div>
+        <div class="row" style="margin:6px 0 0 10px;gap:8px"><span class="tiny muted bold grow">— ${esc(pigName())}</span><button class="btn sm home-btn" data-act="home.open">🏡 ${t('home.title')}</button></div></div>
     </div>
     <div class="masonry" style="margin-top:8px">${order.map((s) => SECTIONS[s]()).join('')}</div>
   </div>`;
